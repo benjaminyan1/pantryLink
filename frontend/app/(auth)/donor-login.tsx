@@ -1,12 +1,52 @@
-import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 
 export default function DonorLoginScreen() {
-  const handleLogin = () => {
-    // TODO: Implement actual login logic
-    console.log('Donor login attempted');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+      
+      // Store authentication tokens in secure storage
+      // For a real app, use SecureStore from expo-secure-store
+      console.log('Login successful', data);
+      
+      // Navigate to main app
+      router.replace('/(tabs)');
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert('Login Failed', error.message || 'Please check your credentials and try again');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = () => {
@@ -19,8 +59,12 @@ export default function DonorLoginScreen() {
       
       <TextInput
         style={styles.input}
-        placeholder="Username"
+        placeholder="Email"
         placeholderTextColor="#666"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       
       <TextInput
@@ -28,14 +72,24 @@ export default function DonorLoginScreen() {
         placeholder="Password"
         placeholderTextColor="#666"
         secureTextEntry
+        value={password}
+        onChangeText={setPassword}
       />
       
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <ThemedText style={styles.buttonText}>Login</ThemedText>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <ThemedText style={styles.buttonText}>
+          {loading ? 'Logging in...' : 'Login'}
+        </ThemedText>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <ThemedText style={styles.registerButtonText}>Don't have an account? Register</ThemedText>
+        <ThemedText style={styles.registerButtonText}>
+          Don't have an account? Register
+        </ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );
@@ -84,4 +138,7 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
   },
-}); 
+  buttonDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+});
