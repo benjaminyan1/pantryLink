@@ -34,6 +34,7 @@ const createDelivery = async (req, res) => {
         });
 
         // Populate item details before sending response
+        // Change this to .save or .create later for post requests
         await delivery.populate('items.item');
         
         res.status(201).json(delivery);
