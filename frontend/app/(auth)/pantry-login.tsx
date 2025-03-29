@@ -3,6 +3,7 @@ import { StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { Config } from '@/constants/Config';
 
 export default function PantryLoginScreen() {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ export default function PantryLoginScreen() {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3000/api/login', {
+      const response = await fetch(`http://10.142.47.118:3000/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -26,6 +27,7 @@ export default function PantryLoginScreen() {
         body: JSON.stringify({
           email,
           password,
+          userType: 'nonprofit', // Specify user type for proper role-based login
         }),
       });
       
@@ -43,6 +45,10 @@ export default function PantryLoginScreen() {
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Login error:', error);
+      Alert.alert(
+        'Login Failed', 
+        error instanceof Error ? error.message : 'Please check your credentials and try again'
+      );
     } finally {
       setLoading(false);
     }
@@ -86,7 +92,9 @@ export default function PantryLoginScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <ThemedText style={styles.registerButtonText}>Don't have an account? Register</ThemedText>
+        <ThemedText style={styles.registerButtonText}>
+          Don't have an account? Register
+        </ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );
