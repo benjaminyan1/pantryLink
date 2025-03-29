@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fetch = require('node-fetch'); // Ensure you have node-fetch@2 installed
 const { auth: jwtAuth, requiredScopes } = require('express-oauth2-jwt-bearer');
+const mongoose = require('mongoose');
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +18,16 @@ const port = process.env.PORT || 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
+
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('Mongoose connected'))
+.catch(err => {
+  console.error('Failed to connect with Mongoose', err);
+  process.exit(1);
+});
 
 // ----- Web Authentication using express-openid-connect -----
 // This is used for your session-based routes (e.g., / and /profile)
@@ -146,54 +157,87 @@ app.post('/api/register', async (req, res) => {
 // Login endpoint
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, userType } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    // Instead of directly using the password grant, create a session using express-openid-connect
+    // This requires a slight change in your frontend authentication approach
     const tokenResponse = await fetch(`${process.env.AUTH0_ISSUER_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        grant_type: 'password',
-        username: email,
-        password,
-        audience: process.env.AUTH0_AUDIENCE,
-        scope: 'openid profile email',
+        grant_type: 'client_credentials', // Using client credentials instead of password
         client_id: process.env.AUTH0_CLIENT_ID,
-        client_secret: process.env.AUTH0_CLIENT_SECRET
+        client_secret: process.env.AUTH0_CLIENT_SECRET,
+        audience: process.env.AUTH0_AUDIENCE
       })
     });
 
     const tokenData = await tokenResponse.json();
-
+    
     if (tokenResponse.status !== 200) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      console.error("Login error response:", tokenData);
+      return res.status(401).json({ error: tokenData.error_description || 'Authentication failed' });
     }
 
-    const userInfoResponse = await fetch(`${process.env.AUTH0_ISSUER_BASE_URL}/userinfo`, {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` }
-    });
+    // After getting a token, we need to manually check the user's credentials
+    // This is a workaround since we can't use the password grant directly
+    const managementToken = await getManagementToken();
 
-    const userInfo = await userInfoResponse.json();
+    // Search for the user by email
+    const userSearchResponse = await fetch(
+      `${process.env.AUTH0_ISSUER_BASE_URL}/api/v2/users-by-email?email=${encodeURIComponent(email)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${managementToken}`
+        }
+      }
+    );
+
+    const users = await userSearchResponse.json();
+    
+    if (!users || users.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const auth0User = users[0];
+
+    // Find or create user in our database
     const usersCollection = db.collection('users');
-    let dbUser = await usersCollection.findOne({ email: userInfo.email });
+    let dbUser = await usersCollection.findOne({ email });
 
     if (!dbUser) {
       const newUser = {
-        email: userInfo.email,
-        name: userInfo.name,
-        auth0Id: userInfo.sub,
+        email,
+        name: auth0User.name || email.split('@')[0],
+        auth0Id: auth0User.user_id,
         createdAt: new Date(),
-        userType: userInfo.userType || 'donor'
+        userType: userType || 'donor'
       };
 
       await usersCollection.insertOne(newUser);
       dbUser = newUser;
+    } else if (userType && dbUser.userType !== userType) {
+      // Update user type if needed
+      await usersCollection.updateOne(
+        { email },
+        { $set: { userType, updatedAt: new Date() } }
+      );
+      dbUser.userType = userType;
     }
 
-    res.json({ tokens: tokenData, user: dbUser });
+    // Return application token and user data
+    res.json({ 
+      tokens: { 
+        access_token: tokenData.access_token,
+        expires_in: tokenData.expires_in,
+        token_type: tokenData.token_type
+      }, 
+      user: dbUser 
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -203,13 +247,28 @@ app.post('/api/login', async (req, res) => {
 // Signup endpoint that creates a new user in Auth0 via the Management API
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, userType, location, organizationName, address } = req.body;
 
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
-    // Get management token
+    // Validate userType
+    const validTypes = ['donor', 'nonprofit', 'dasher'];
+    if (!userType || !validTypes.includes(userType)) {
+      return res.status(400).json({ error: 'Valid userType is required (donor, nonprofit, or dasher)' });
+    }
+    
+    // Additional validation for required fields based on user type
+    if (userType === 'nonprofit' && (!organizationName || !address)) {
+      return res.status(400).json({ error: 'Organization name and address are required for nonprofit accounts' });
+    }
+
+    if (userType === 'dasher' && !location) {
+      return res.status(400).json({ error: 'Location is required for dasher accounts' });
+    }
+
+    // Get management token for Auth0
     const managementToken = await getManagementToken();
 
     // Create the user in Auth0
@@ -224,7 +283,10 @@ app.post('/api/auth/signup', async (req, res) => {
         name,
         password,
         connection: 'Username-Password-Authentication',
-        user_metadata: { phone }
+        user_metadata: { 
+          phone,
+          userType
+        }
       })
     });
 
@@ -235,20 +297,82 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: userData.message || 'Failed to create user' });
     }
 
+    const auth0Id = userData.user_id;
+    
+    // Store in generic users collection first (for quick lookups)
     const usersCollection = db.collection('users');
     await usersCollection.insertOne({
       email,
       name,
       phone,
-      auth0Id: userData.user_id,
-      userType: 'donor',
+      auth0Id,
+      userType,
       createdAt: new Date()
     });
+    
+    // Store in specific model collection based on userType
+    let userDoc;
+    
+    switch(userType) {
+      case 'donor': {
+        const Donor = require('./models/Donor');
+        userDoc = new Donor({
+          auth0Id,
+          name,
+          email,
+          phone,
+          donations: []
+        });
+        await userDoc.save();
+        break;
+      }
+      
+      case 'nonprofit': {
+        const Nonprofit = require('./models/Nonprofit');
+        userDoc = new Nonprofit({
+          auth0Id,
+          organizationName: organizationName || name,
+          contactPerson: {
+            name,
+            email,
+            phone: phone || ''
+          },
+          address,
+          needs: [],
+          upcomingDeliveries: []
+        });
+        await userDoc.save();
+        break;
+      }
+      
+      case 'dasher': {
+        const Dasher = require('./models/Dasher');
+        userDoc = new Dasher({
+          auth0Id,
+          name,
+          email,
+          phone,
+          location: location || {
+            address: address || '',
+            coordinates: [0, 0] // Default coordinates, should be properly set
+          },
+          vehicle: req.body.vehicle || {},
+          isAvailable: true,
+          deliveries: []
+        });
+        await userDoc.save();
+        break;
+      }
+    }
 
-    res.status(201).json({ message: 'User created successfully' });
+    res.status(201).json({ 
+      message: 'User created successfully',
+      userType,
+      userId: userDoc._id
+    });
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
