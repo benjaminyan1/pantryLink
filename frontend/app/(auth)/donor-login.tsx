@@ -11,6 +11,7 @@ export default function DonorLoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    console.log('hi');
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
       return;
@@ -19,7 +20,7 @@ export default function DonorLoginScreen() {
     setLoading(true);
     
     try {
-      const response = await fetch(`http://10.142.47.118:3000/api/login`, {
+      const response = await fetch(`http://10.142.36.197:3000/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

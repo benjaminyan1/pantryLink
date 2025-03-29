@@ -7,7 +7,10 @@ import { Config } from '@/constants/Config';
 
 export default function PantryRegisterScreen() {
   const [organizationName, setOrganizationName] = useState('');
-  const [address, setAddress] = useState('');
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zip, setZip] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +18,7 @@ export default function PantryRegisterScreen() {
 
   const handleRegister = async () => {
     // Basic validation
-    if (!organizationName || !email || !password || !address) {
+    if (!organizationName || !email || !password || !street || !city || !state || !zip) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -36,8 +39,9 @@ export default function PantryRegisterScreen() {
     setLoading(true);
     
     try {
+      const address = `${street}, ${city}, ${state} ${zip}`;
       // Register with Auth0 and create nonprofit profile
-      const registerResponse = await fetch(`http://10.142.47.118:3000/api/auth/signup`, {
+      const registerResponse = await fetch(`http://10.142.36.197:3000/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,10 +99,32 @@ export default function PantryRegisterScreen() {
         
         <TextInput
           style={styles.input}
-          placeholder="Address"
+          placeholder="Street Address"
           placeholderTextColor="#666"
-          value={address}
-          onChangeText={setAddress}
+          value={street}
+          onChangeText={setStreet}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="City"
+          placeholderTextColor="#666"
+          value={city}
+          onChangeText={setCity}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="State"
+          placeholderTextColor="#666"
+          value={state}
+          onChangeText={setState}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="ZIP Code"
+          placeholderTextColor="#666"
+          value={zip}
+          onChangeText={setZip}
+          keyboardType="numeric"
         />
         
         <TextInput
