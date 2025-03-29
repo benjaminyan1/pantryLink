@@ -15,6 +15,7 @@
         "NSLocationWhenInUseUsageDescription": "Your location is required to show nearby food pantries",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Your location is required to show nearby food pantries"
       }
+
     },
     "android": {
       "adaptiveIcon": {
