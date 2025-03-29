@@ -10,8 +10,7 @@ export default function PantryLoginScreen() {
   };
 
   const handleRegister = () => {
-    // TODO: Navigate to register screen
-    console.log('Navigate to pantry register');
+    router.push('/(auth)/pantry-register');
   };
 
   return (
@@ -33,10 +32,6 @@ export default function PantryLoginScreen() {
       
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <ThemedText style={styles.buttonText}>Login</ThemedText>
-      </TouchableOpacity>
-      
-      <TouchableOpacity onPress={() => router.back()}>
-        <ThemedText style={styles.backButton}>Back</ThemedText>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
@@ -80,10 +75,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  backButton: {
-    marginTop: 20,
-    color: '#007AFF',
   },
   registerButton: {
     marginTop: 15,
