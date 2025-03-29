@@ -1,4 +1,7 @@
 import { StyleSheet, Image, Platform } from 'react-native';
+import MapView, { Marker, Circle } from 'react-native-maps';
+import { useEffect, useState, useRef } from 'react';
+import * as Location from 'expo-location';
 
 import { Collapsible } from '@/components/Collapsible';
 import { ExternalLink } from '@/components/ExternalLink';
@@ -7,7 +10,52 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const mapRef = useRef<MapView | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
+      }
+
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000,
+          distanceInterval: 10,
+        },
+        (location) => {
+          const coords = location.coords;
+          setUserLocation({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          });
+          console.log('[LOCATION UPDATE]', coords.latitude, coords.longitude);
+          mapRef.current?.animateToRegion(
+            {
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            },
+            1000
+          );
+        }
+      );
+
+      return () => {
+        subscription?.remove();
+      };
+    })();
+  }, []);
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -22,6 +70,21 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Explore</ThemedText>
       </ThemedView>
+
+      {/* Map Section */}
+      <ThemedView style={styles.mapContainer}>
+        <MapView style={styles.map} ref={mapRef}>
+          {userLocation && (
+            <Circle
+              center={{ latitude: userLocation.latitude, longitude: userLocation.longitude }}
+              radius={30}
+              fillColor="rgba(0, 122, 255, 0.3)"
+              strokeColor="rgba(0, 122, 255, 0.5)"
+            />
+          )}
+        </MapView>
+      </ThemedView>
+
       <ThemedText>This app includes example code to help you get started.</ThemedText>
       <Collapsible title="File-based routing">
         <ThemedText>
@@ -105,5 +168,14 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+  },
+  mapContainer: {
+    height: 300,
+    marginVertical: 20,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  map: {
+    flex: 1,
   },
 });
