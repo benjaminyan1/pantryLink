@@ -6,15 +6,16 @@ const mongoose = require("mongoose");
 const Nonprofit = require("../models/Nonprofit");
 
 // Create nonprofit profile
-router.post("/", async (req, res) => {
-    try {
-        const newNonprofit = new Nonprofit(req.body);
-        await newNonprofit.save();
-        res.status(201).json(newNonprofit);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
+// DONT NEED THIS POST REQUEST ANYMORE
+// router.post("/", async (req, res) => {
+//     try {
+//         const newNonprofit = new Nonprofit(req.body);
+//         await newNonprofit.saxve();
+//         res.status(201).json(newNonprofit);
+//     } catch (error) {
+//         res.status(500).json({ message: "Server error", error: error.message });
+//     }
+// });
 
 // Get nonprofit profile
 router.get("/:id", async (req, res) => {
@@ -30,7 +31,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update profile
-router.put("/:id", async (req, res) => {
+router.put("/update/:id", async (req, res) => {
     try {
         const updatedNonprofit = await Nonprofit.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedNonprofit) {

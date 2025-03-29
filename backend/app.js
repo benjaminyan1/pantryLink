@@ -1,4 +1,5 @@
 const express = require('express');
+const app =  express();
 const { auth: oidcAuth } = require('express-openid-connect');
 const { MongoClient } = require('mongodb');
 const dotenv = require('dotenv');
@@ -7,11 +8,12 @@ const cors = require('cors');
 const fetch = require('node-fetch'); // Ensure you have node-fetch@2 installed
 const { auth: jwtAuth, requiredScopes } = require('express-oauth2-jwt-bearer');
 const mongoose = require('mongoose');
+const nonprofit = require('./routes/nonprofitRoutes');
+app.use('/api/nonprofit', nonprofit);
 
 // Load environment variables
 dotenv.config();
 
-const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware: parse request bodies and enable CORS
