@@ -1,4 +1,5 @@
 import { Image, StyleSheet, Platform } from 'react-native';
+import { useAuth } from '@/context/AuthContext';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -6,6 +7,21 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
+  const { isLoggedIn, user } = useAuth();
+
+  // Show different UI based on login status
+  if (isLoggedIn) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText type="title">NOT IMPLEMENTED YET</ThemedText>
+        <ThemedText style={{ marginTop: 10 }}>
+          Welcome back, {user?.name || "User"}!
+        </ThemedText>
+      </ThemedView>
+    );
+  }
+
+  // Default UI when not logged in
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -55,6 +71,12 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',

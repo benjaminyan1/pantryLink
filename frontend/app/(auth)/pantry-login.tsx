@@ -4,11 +4,13 @@ import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { Config } from '@/constants/Config';
+import { useAuth } from '@/context/AuthContext';
 
 export default function PantryLoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -19,30 +21,10 @@ export default function PantryLoginScreen() {
     setLoading(true);
     
     try {
-      const response = await fetch(`http://10.142.47.118:3000/api/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          userType: 'nonprofit', // Specify user type for proper role-based login
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-      
-      // Store authentication tokens in secure storage
-      // For a real app, use SecureStore from expo-secure-store
-      console.log('Login successful', data);
+      await login(email, password, 'nonprofit');
       
       // Navigate to main app
-      router.replace('/(tabs)');
+      router.replace('/');
     } catch (error) {
       console.error('Login error:', error);
       Alert.alert(
