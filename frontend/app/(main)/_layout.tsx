@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -45,8 +46,14 @@ export default function TabLayout() {
         options={{
           title: 'Login',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          tabBarButton: (props) => (
+            <HapticTab
+              {...props}
+              onPress={() => router.push('/(auth)/login')}
+            />
+          ),
         }}
       />
     </Tabs>
   );
-}
+} 
