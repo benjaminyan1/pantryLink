@@ -34,10 +34,7 @@ export default function DonorRegisterScreen() {
     setLoading(true);
     
     try {
-      // Step 1: Register with Auth0
-      // Auth0 does not have a direct API for registration, 
-      // we must use the Auth0 Management API through our backend
-      const registerResponse = await fetch('http://localhost:3000/api/auth/signup', {
+      const registerResponse = await fetch(`http://10.142.47.118:3000/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,38 +43,20 @@ export default function DonorRegisterScreen() {
           name: fullName,
           email,
           password,
-          phone
+          phone,
+          userType: 'donor' // Using the updated schema with userType
         }),
       });
       
       const registerData = await registerResponse.json();
       
       if (!registerResponse.ok) {
-        throw new Error(registerData.error || 'Registration failed');
-      }
-      
-      // Step 2: Store user type in our database
-      const typeResponse = await fetch('http://localhost:3000/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          userType: 'donor',  // Set user type as donor
-          name: fullName,
-          phone
-        }),
-      });
-      
-      if (!typeResponse.ok) {
-        const typeData = await typeResponse.json();
-        throw new Error(typeData.error || 'Failed to set user type');
+        throw new Error(registerData.error || registerData.details || 'Registration failed');
       }
       
       Alert.alert(
         'Registration Successful',
-        'Your account has been created successfully!',
+        'Your donor account has been created successfully!',
         [
           {
             text: 'OK',
@@ -87,7 +66,10 @@ export default function DonorRegisterScreen() {
       );
     } catch (error) {
       console.error('Registration error:', error);
-
+      Alert.alert(
+        'Registration Failed', 
+        error instanceof Error ? error.message : 'Please try again later'
+      );
     } finally {
       setLoading(false);
     }
