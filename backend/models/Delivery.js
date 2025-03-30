@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
 const deliverySchema = new mongoose.Schema({
-    donation: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Donation',
-        required: true
-    },
     donor: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Donor',
@@ -61,13 +56,7 @@ const deliverySchema = new mongoose.Schema({
             required: true
         },
         quantity: Number
-    }],
-    urgencyLevel: {
-        type: Number,
-        min: 1,
-        max: 5,
-        default: 1
-    },
+    }],  
     estimatedTime: {
         type: Number,  // in minutes
         default: 30
