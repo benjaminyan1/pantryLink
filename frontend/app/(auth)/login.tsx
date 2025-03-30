@@ -1,7 +1,8 @@
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { FontAwesome5 } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const handleDonorLogin = () => {
@@ -11,9 +12,25 @@ export default function LoginScreen() {
   const handlePantryLogin = () => {
     router.push('/(auth)/pantry-login');
   };
+  
+  const handleBackToHome = () => {
+    router.replace('/(tabs)', {
+      // Add animation options to make it slide from left (like a back action)
+      animationType: 'slide_from_left'
+    });
+  };
 
   return (
     <ThemedView style={styles.container}>
+      {/* Back button */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={handleBackToHome}
+      >
+        <FontAwesome5 name="arrow-left" size={20} color="#007AFF" />
+        <ThemedText style={styles.backButtonText}>Back to Home</ThemedText>
+      </TouchableOpacity>
+      
       <ThemedText type="title" style={styles.title}>Welcome to PantryLink</ThemedText>
       <ThemedText style={styles.subtitle}>Please select your account type</ThemedText>
       
@@ -34,6 +51,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    marginLeft: 8,
   },
   title: {
     marginBottom: 10,
@@ -56,4 +85,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-}); 
+});

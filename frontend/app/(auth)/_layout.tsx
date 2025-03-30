@@ -1,59 +1,20 @@
-import { Stack, router } from 'expo-router';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { Stack } from "expo-router";
+import React from "react";
 
 export default function AuthLayout() {
   return (
-    <ThemedView style={styles.container}>
-      <Stack>
-        <Stack.Screen 
-          name="login" 
-          options={{ 
-            title: 'Login',
-            headerShown: true 
-          }} 
-        />
-        <Stack.Screen 
-          name="donor-login" 
-          options={{ 
-            title: 'Donor Login',
-            headerShown: true 
-          }} 
-        />
-        <Stack.Screen 
-          name="pantry-login" 
-          options={{ 
-            title: 'Pantry Login',
-            headerShown: true 
-          }} 
-        />
-      </Stack>
-      
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={() => router.replace('/(tabs)')}
-      >
-        <ThemedText style={styles.buttonText}>Back to Main</ThemedText>
-      </TouchableOpacity>
-    </ThemedView>
+    <Stack
+      screenOptions={{
+        headerShown: false, // Hide the default header
+        animation: 'slide_from_left', // Animation for pushing to next screen
+        animationTypeForReplace: 'pop', // Animation for going back
+      }}
+    >
+      <Stack.Screen name="login" />
+      <Stack.Screen name="donor-login" />
+      <Stack.Screen name="donor-register" />
+      <Stack.Screen name="pantry-login" />
+      <Stack.Screen name="pantry-register" />
+    </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    margin: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-}); 
