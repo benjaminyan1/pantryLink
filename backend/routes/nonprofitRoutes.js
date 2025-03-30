@@ -31,7 +31,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update profile
-router.put("/update/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
     try {
         const updatedNonprofit = await Nonprofit.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedNonprofit) {
@@ -43,7 +43,18 @@ router.put("/update/:id", async (req, res) => {
     }
 });
 
-router.post("/needs", async (req, res) => {
+// Get all addresses for nonprofits
+router.get("/addresses", async (req, res) => {
+    try {
+        const nonprofits = await Nonprofit.find({}, { address: 1 });
+        const addresses = nonprofits.map(nonprofit => nonprofit.address);
+        res.json(addresses);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+router.post("/needs/:id", async (req, res) => {
     try {
         const { nonprofitId, needs } = req.body; // needs should now include item IDs
         const nonprofit = await Nonprofit.findById(nonprofitId);
