@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { router } from 'expo-router';
 import { useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import * as ImagePicker from 'expo-image-picker';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -16,7 +17,10 @@ export default function HomeScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedDonation, setSelectedDonation] = useState(null);
-  
+  const [scanningModalVisible, setScanningModalVisible] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [processingImage, setProcessingImage] = useState(false);
+
   // Form state
   const [itemName, setItemName] = useState('');
   const [quantity, setQuantity] = useState('1');
@@ -51,10 +55,8 @@ export default function HomeScreen() {
       const data = await response.json();
       setDonations(data.donations || []);
       
-      // Add this debugging code
       console.log('Fetched donations:', data.donations);
       
-      // Check if any donation is missing an _id
       const missingIds = data.donations?.filter(d => !d._id || d._id === undefined);
       
     } catch (error) {
@@ -116,7 +118,6 @@ export default function HomeScreen() {
         return;
       }
       
-      // Check if item ID exists
       if (!selectedDonation.item._id) {
         console.error('Error: Item ID is undefined');
         Alert.alert('Error', 'Could not identify donation to update');
@@ -128,7 +129,6 @@ export default function HomeScreen() {
       setLoading(true);
       const token = await SecureStore.getItemAsync('token');
       
-      // Use the donations/by-item/:itemId endpoint with PUT method
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/donations/by-item/${selectedDonation.item._id}`, {
         method: 'PUT',
         headers: {
@@ -162,7 +162,6 @@ export default function HomeScreen() {
 
   const handleDeleteDonation = async (itemId) => {
     try {
-      // Check if itemId exists
       if (!itemId) {
         console.error('Error: Item ID is undefined');
         Alert.alert('Error', 'Could not identify donation to delete');
@@ -184,7 +183,6 @@ export default function HomeScreen() {
                 setLoading(true);
                 const token = await SecureStore.getItemAsync('token');
                 
-                // Create a custom endpoint or modify your backend to handle deletion by donor and item ID
                 const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/donations/by-item/${itemId}`, {
                   method: 'DELETE',
                   headers: {
@@ -234,19 +232,147 @@ export default function HomeScreen() {
     setEditModalVisible(true);
   };
 
-  // Show different UI based on login status
+  const pickImage = async () => {
+    try {
+      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
+        Alert.alert('Permission needed', 'Camera and photo library permissions are needed to scan donations');
+        return;
+      }
+
+      Alert.alert(
+        'Choose Image Source',
+        'Take a new photo or select from gallery?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Photo Library', onPress: selectFromGallery },
+          { text: 'Take Photo', onPress: takePhoto }
+        ]
+      );
+    } catch (error) {
+      console.error('Error requesting permissions:', error);
+      Alert.alert('Error', 'Failed to access camera or photo library');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setImagePreview(result.assets[0].uri);
+        setScanningModalVisible(true);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const selectFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setImagePreview(result.assets[0].uri);
+        setScanningModalVisible(true);
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to select image');
+    }
+  };
+
+  const processImageWithGemini = async () => {
+    if (!imagePreview || !user?.id) {
+      Alert.alert('Error', 'No image selected or user not logged in');
+      return;
+    }
+
+    setProcessingImage(true);
+
+    try {
+      const formData = new FormData();
+      const filename = imagePreview.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image';
+
+      formData.append('image', {
+        uri: imagePreview,
+        name: filename || 'photo.jpg',
+        type
+      });
+      
+      formData.append('donorId', user.id);
+
+      const token = await SecureStore.getItemAsync('token');
+      
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/donations/image-to-donation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to process image');
+      }
+
+      const result = await response.json();
+      
+      setScanningModalVisible(false);
+      setImagePreview(null);
+      fetchDonations();
+      
+      Alert.alert(
+        'Success!', 
+        `Found ${result.detectedItems.length} items:\n${result.detectedItems.map(item => `• ${item.name} (${item.quantity})`).join('\n')}`
+      );
+    } catch (error) {
+      console.error('Error processing image:', error);
+      Alert.alert('Error', error.message || 'Failed to process image');
+    } finally {
+      setProcessingImage(false);
+    }
+  };
+
   if (isLoggedIn) {
     return (
       <ThemedView style={styles.container}>
         <ThemedText type="title" style={styles.title}>Your Donations</ThemedText>
         
-        <TouchableOpacity 
-          style={styles.createButton} 
-          onPress={() => setCreateModalVisible(true)}
-          disabled={loading}
-        >
-          <ThemedText style={styles.buttonText}>+ Create Donation</ThemedText>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.createBtn]} 
+            onPress={() => setCreateModalVisible(true)}
+            disabled={loading}
+          >
+            <ThemedText style={styles.buttonText}>+ Create Donation</ThemedText>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionBtn, styles.scanBtn]} 
+            onPress={pickImage}
+            disabled={loading}
+          >
+            <ThemedText style={styles.buttonText}>📷 Scan Items</ThemedText>
+          </TouchableOpacity>
+        </View>
         
         {loading && <ThemedText>Loading...</ThemedText>}
         
@@ -292,7 +418,6 @@ export default function HomeScreen() {
           )}
         />
         
-        {/* Create Modal */}
         <Modal
           visible={createModalVisible}
           transparent={true}
@@ -353,7 +478,6 @@ export default function HomeScreen() {
           </ThemedView>
         </Modal>
         
-        {/* Edit Modal */}
         <Modal
           visible={editModalVisible}
           transparent={true}
@@ -413,11 +537,63 @@ export default function HomeScreen() {
             </ThemedView>
           </ThemedView>
         </Modal>
+        
+        <Modal
+          visible={scanningModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => {
+            if (!processingImage) {
+              setScanningModalVisible(false);
+              setImagePreview(null);
+            }
+          }}
+        >
+          <ThemedView style={styles.modalOverlay}>
+            <ThemedView style={styles.modalContent}>
+              <ThemedText type="subtitle" style={styles.modalTitle}>Scan Donations</ThemedText>
+              
+              {imagePreview && (
+                <Image 
+                  source={{ uri: imagePreview }} 
+                  style={styles.imagePreview} 
+                  resizeMode="contain"
+                />
+              )}
+              
+              <ThemedText style={styles.scanInfo}>
+                Gemini AI will analyze this image and detect food items automatically.
+              </ThemedText>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]} 
+                  onPress={() => {
+                    setScanningModalVisible(false);
+                    setImagePreview(null);
+                  }}
+                  disabled={processingImage}
+                >
+                  <ThemedText style={styles.modalButtonText}>Cancel</ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.saveButton]} 
+                  onPress={processImageWithGemini}
+                  disabled={processingImage}
+                >
+                  <ThemedText style={styles.modalButtonText}>
+                    {processingImage ? 'Processing...' : 'Process Image'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ThemedView>
+          </ThemedView>
+        </Modal>
       </ThemedView>
     );
   }
 
-  // Default UI when not logged in
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -472,11 +648,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    paddingBottom: 0, // Remove bottom padding to give more space for the list
+    paddingBottom: 0,
   },
   title: {
     marginTop: 53,
-    marginBottom: 10, // Reduce the bottom margin
+    marginBottom: 10,
     textAlign: 'center',
   },
   titleContainer: {
@@ -525,15 +701,13 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
-  
-  // New styles for donations list and forms
   list: {
-    flex: 1, // Make the list take up all available space
+    flex: 1,
     width: '100%',
     marginTop: 10,
   },
   listContent: {
-    paddingBottom: 100, // Add padding to the bottom of the list content
+    paddingBottom: 100,
   },
   emptyText: {
     textAlign: 'center',
@@ -542,10 +716,10 @@ const styles = StyleSheet.create({
   },
   createButton: {
     backgroundColor: '#007AFF',
-    paddingVertical: 10, // Reduce vertical padding
+    paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 10, // Reduce bottom margin
+    marginBottom: 10,
   },
   donationItem: {
     flexDirection: 'row',
@@ -586,8 +760,6 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: '#FF3B30',
   },
-  
-  // Modal styles
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -641,5 +813,38 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 15,
+  },
+  actionBtn: {
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    flex: 1,
+  },
+  createBtn: {
+    backgroundColor: '#007AFF',
+    marginRight: 5,
+  },
+  scanBtn: {
+    backgroundColor: '#34C759',
+    marginLeft: 5,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 15,
+    backgroundColor: '#f0f0f0',
+  },
+  scanInfo: {
+    textAlign: 'center',
+    marginBottom: 15,
+    fontSize: 14,
+    color: '#666',
   },
 });
