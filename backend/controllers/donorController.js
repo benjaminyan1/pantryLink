@@ -227,6 +227,8 @@ const deleteDonation = async (req, res) => {
     }
 
     // Find donation index by ID
+    console.error('Donation ID:', donationId);
+    console.error('Donor donations:', donor.donations);
     const donationIndex = donor.donations.findIndex(d => d._id.toString() === donationId);
     
     if (donationIndex === -1) {
@@ -359,11 +361,12 @@ const processImageAndCreateDonation = async (req, res) => {
 
     // Read the uploaded image file
     const imagePath = req.file.path;
+    console.log('Image path:', imagePath);
     const imageData = await fs.readFile(imagePath);
     const imageBase64 = imageData.toString('base64');
 
     // Configure Gemini model for multimodal input
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Prepare the prompt for Gemini
     const prompt = `Analyze this image of food/pantry items and identify all items visible. 
@@ -376,6 +379,7 @@ const processImageAndCreateDonation = async (req, res) => {
       }
     ]
     Be specific about item names (e.g. "Canned Tomatoes" instead of just "Cans"). 
+    Don't be too specific though. Don't say things like brand names or "organic". Also, don't say things like "Italian dressing," just say "dressing".
     Make reasonable guesses for quantities based on what you can see.`;
 
     // Send the image to Gemini API for analysis
