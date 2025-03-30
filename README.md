@@ -43,4 +43,4 @@ Clone the repository and navigate into the project folder: cd pantryLink
 ### Backend
 1. Open a new terminal: cd backend
 2. npm install
-3.npm run dev
+3. npm run dev
