@@ -1,4 +1,5 @@
 import { Image, StyleSheet, Platform, TouchableOpacity, FlatList, Alert, Modal, TextInput, View, ScrollView } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { useAuth } from '@/context/AuthContext';
 import { router } from 'expo-router';
 import { useState, useEffect } from 'react';
@@ -20,13 +21,15 @@ export default function HomeScreen() {
   const [scanningModalVisible, setScanningModalVisible] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [processingImage, setProcessingImage] = useState(false);
+  const [editNeedModalVisible, setEditNeedModalVisible] = useState(false);
+  const [selectedNeed, setSelectedNeed] = useState(null);
 
   // Form state
   const [itemName, setItemName] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [expirationDate, setExpirationDate] = useState('');
   const [needs, setNeeds] = useState([]);
-  const [urgency, setUrgency] = useState('');
+  const [urgency, setUrgency] = useState('50'); // Default to the middle of the range
 
   const handleLoginPress = () => {
     router.push('/(auth)/login');
@@ -120,6 +123,8 @@ export default function HomeScreen() {
     try {
       setLoading(true);
       const token = await SecureStore.getItemAsync('token');
+
+      console.log(user);
       
       const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/donors/${user.id}`, {
         headers: {
@@ -309,6 +314,107 @@ export default function HomeScreen() {
     setQuantity(donation.quantity.toString());
     setExpirationDate(donation.expirationDate || '');
     setEditModalVisible(true);
+  };
+
+  const openEditNeedModal = (need) => {
+    setSelectedNeed(need);
+    setItemName(need.itemName);
+    setQuantity(need.quantity.toString());
+    setUrgency(need.urgency);
+    setEditNeedModalVisible(true);
+  };
+
+  const handleUpdateNeed = async () => {
+    try {
+      if (!selectedNeed || !quantity || !urgency) {
+        Alert.alert('Error', 'Please provide quantity and urgency');
+        return;
+      }
+      
+      setLoading(true);
+      const token = await SecureStore.getItemAsync('token');
+      const incrementedLastChar = (parseInt(user.id.slice(-1), 16) + 1).toString(16).padStart(1, '0');
+      const incrementedId = user.id.slice(0, -1) + incrementedLastChar;
+      
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${incrementedId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          need: {
+            itemName: selectedNeed.itemName,
+            quantity: parseInt(quantity),
+            urgency: urgency
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update need');
+      }
+      
+      setEditNeedModalVisible(false);
+      clearNeedForm();
+      fetchNeeds();
+      Alert.alert('Success', 'Need updated successfully');
+    } catch (error) {
+      console.error('Error updating need:', error);
+      Alert.alert('Error', 'Failed to update need');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteNeed = async (itemName) => {
+    try {
+      Alert.alert(
+        'Confirm Delete',
+        'Are you sure you want to delete this need?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setLoading(true);
+                const token = await SecureStore.getItemAsync('token');
+                const incrementedLastChar = (parseInt(user.id.slice(-1), 16) + 1).toString(16).padStart(1, '0');
+                const incrementedId = user.id.slice(0, -1) + incrementedLastChar;
+                
+                const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${incrementedId}`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({
+                    itemName: itemName
+                  })
+                });
+                
+                if (!response.ok) {
+                  throw new Error('Failed to delete need');
+                }
+                
+                fetchNeeds();
+                Alert.alert('Success', 'Need deleted successfully');
+              } catch (error) {
+                console.error('Error deleting need:', error);
+                Alert.alert('Error', 'Failed to delete need');
+              } finally {
+                setLoading(false);
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error in handleDeleteNeed:', error);
+      Alert.alert('Error', 'Failed to delete need');
+    }
   };
 
   const pickImage = async () => {
@@ -678,11 +784,11 @@ export default function HomeScreen() {
       <ThemedView style={styles.container}>
         <ThemedText type="title" style={styles.title}>Your Needs</ThemedText>
         <TouchableOpacity 
-          style={[styles.actionBtn, styles.createBtn]} 
+          style={styles.createNeedButton} 
           onPress={() => setCreateModalVisible(true)}
           disabled={loading}
         >
-          <ThemedText style={styles.buttonText}>Create Need</ThemedText>
+          <ThemedText style={styles.buttonText}>+ Create Need</ThemedText>
         </TouchableOpacity>
         {loading && <ThemedText>Loading...</ThemedText>}
         {!loading && needs.length === 0 && (
@@ -702,6 +808,22 @@ export default function HomeScreen() {
                 <ThemedText style={styles.itemName}>{item.itemName}</ThemedText>
                 <ThemedText>Quantity: {item.quantity}</ThemedText>
                 <ThemedText>Urgency: {item.urgency}</ThemedText>
+              </View>
+              
+              <View style={styles.actionButtons}>
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.editButton]} 
+                  onPress={() => openEditNeedModal(item)}
+                >
+                  <ThemedText style={styles.actionButtonText}>Edit</ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.deleteButton]} 
+                  onPress={() => handleDeleteNeed(item.itemName)}
+                >
+                  <ThemedText style={styles.actionButtonText}>Delete</ThemedText>
+                </TouchableOpacity>
               </View>
             </ThemedView>
           )}
@@ -730,12 +852,19 @@ export default function HomeScreen() {
                 keyboardType="numeric"
                 placeholderTextColor="#666"
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Urgency"
-                value={urgency}
-                onChangeText={setUrgency}
-                placeholderTextColor="#666"
+              <ThemedText style={styles.sliderLabel}>
+                Urgency: {urgency}
+              </ThemedText>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={parseInt(urgency) || 0}
+                onValueChange={(value) => setUrgency(value.toString())}
+                minimumTrackTintColor="#4CD964"  // Light green
+                maximumTrackTintColor="#FF3B30"  // Red
+                thumbTintColor="#007AFF"
               />
               <View style={styles.modalButtons}>
                 <TouchableOpacity 
@@ -754,6 +883,70 @@ export default function HomeScreen() {
                 >
                   <ThemedText style={styles.modalButtonText}>
                     {loading ? 'Creating...' : 'Create'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ThemedView>
+          </ThemedView>
+        </Modal>
+        <Modal
+          visible={editNeedModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setEditNeedModalVisible(false)}
+        >
+          <ThemedView style={styles.modalOverlay}>
+            <ThemedView style={styles.modalContent}>
+              <ThemedText type="subtitle" style={styles.modalTitle}>Edit Need</ThemedText>
+              
+              {selectedNeed && (
+                <ThemedText style={styles.itemNameHeader}>
+                  {selectedNeed.itemName}
+                </ThemedText>
+              )}
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Quantity"
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+                placeholderTextColor="#666"
+              />
+              
+              <ThemedText style={styles.sliderLabel}>
+                Urgency: {urgency}
+              </ThemedText>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={parseInt(urgency) || 0}
+                onValueChange={(value) => setUrgency(value.toString())}
+                minimumTrackTintColor="#4CD964"  // Light green
+                maximumTrackTintColor="#FF3B30"  // Red
+                thumbTintColor="#007AFF"
+              />
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]} 
+                  onPress={() => {
+                    setEditNeedModalVisible(false);
+                    clearNeedForm();
+                  }}
+                >
+                  <ThemedText style={styles.modalButtonText}>Cancel</ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.saveButton]} 
+                  onPress={handleUpdateNeed}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.modalButtonText}>
+                    {loading ? 'Updating...' : 'Update'}
                   </ThemedText>
                 </TouchableOpacity>
               </View>
@@ -1009,5 +1202,24 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 14,
     color: '#666',
+  },
+  createNeedButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    // alignSelf: 'flex-start',
+    marginBottom: 15,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+    marginBottom: 15,
+  },
+  sliderLabel: {
+    width: '100%',
+    textAlign: 'center',
+    marginVertical: 5,
   },
 });
