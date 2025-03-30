@@ -3,7 +3,6 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const Item = require("../models/item"); // Adjust the path to match the correct casing
 const Delivery = require('../models/delivery');
-const Delivery = require('../models/delivery');
 // Import nonprofit model
 const axios = require('axios');
 const Nonprofit = require("../models/Nonprofit");
@@ -45,7 +44,6 @@ router.put("/profile/:id", async (req, res) => {
         } 
         res.json(updatedNonprofit);
     } catch (error) { 
-    } catch (error) { 
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
@@ -71,7 +69,6 @@ router.get("/addresses", async (req, res) => {
 
 // Post request for ID does not work because it's not checking the ID correctly or something, 
 // WORKS
-// WORKS
 router.post("/needs/:id", async (req, res) => {
     try {
         const { need } = req.body;  
@@ -89,12 +86,20 @@ router.post("/needs/:id", async (req, res) => {
                 quantity: need.quantity,
                 urgency: need.urgency
             });
+            await nonprofit.save();
+            res.json(nonprofit);
+            return;
         }
         const itemExists = nonprofit.needs.some(existingNeed => existingNeed.itemId.toString() === item._id.toString());
         
         if (itemExists) {
             return res.status(400).json({ message: "This item already exists in the nonprofit's needs" });
         }
+        nonprofit.needs.push({
+            itemId: item._id, 
+            quantity: need.quantity,
+            urgency: need.urgency
+        });
         // if (item) {
         //     nonprofit.needs.push({
         //     itemId: item._id, 
@@ -110,15 +115,14 @@ router.post("/needs/:id", async (req, res) => {
     }
 });
 
-// works
+
 // works
 router.get("/needs/:id", async (req, res) => {
     try {
         const nonprofitId = req.params.id; // Get nonprofit ID from the request parameters
         const nonprofit = await Nonprofit.findById(nonprofitId)
             .populate("needs.itemId", "name");
-        const nonprofit = await Nonprofit.findById(nonprofitId)
-            .populate("needs.itemId", "name");
+
         if (!nonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
         }
@@ -128,6 +132,79 @@ router.get("/needs/:id", async (req, res) => {
             urgency: need.urgency
         }));
         res.json(formattedNeeds); // Return the array of needs for the nonprofit
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+//WORKS
+router.delete("/needs/:id", async (req, res) => {
+    try {
+        const { itemName } = req.body;  // Get the item name from the body
+        const nonprofitId = req.params.id;  // Get nonprofit ID from the request parameters
+        
+        const nonprofit = await Nonprofit.findById(nonprofitId);
+        
+        if (!nonprofit) {
+            return res.status(404).json({ message: "Nonprofit not found" });
+        }
+
+        // Find the index of the need in the nonprofit's needs array by item name
+        const item = await Item.findOne({ name: itemName });
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+        const needIndex = nonprofit.needs.findIndex(need => need.itemId.equals(item._id));
+        
+        if (needIndex === -1) {
+            return res.status(404).json({ message: "Item not in the nonprofit's needs" });
+        }
+
+        // Remove the item from the needs array
+        nonprofit.needs.splice(needIndex, 1);
+
+        // Save the updated nonprofit
+        await nonprofit.save();
+        
+        res.json({ message: "Item removed successfully", nonprofit });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+// Update need for a nonprofit
+router.put("/needs/:id", async (req, res) => {
+    try {
+        const { need } = req.body;  // Get the item name, quantity, and urgency from the body
+        const nonprofitId = req.params.id;  // Get nonprofit ID from the request parameters
+        
+        const nonprofit = await Nonprofit.findById(nonprofitId);
+        
+        if (!nonprofit) {
+            return res.status(404).json({ message: "Nonprofit not found" });
+        }
+
+        // Find the item in the Items collection based on item name
+        const item = await Item.findOne({ name: need.itemName });
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
+
+        // Find the index of the need in the nonprofit's needs array by comparing ObjectIds
+        const needIndex = nonprofit.needs.findIndex(need => need.itemId.equals(item._id));
+
+        if (needIndex === -1) {
+            return res.status(404).json({ message: "Item not in the nonprofit's needs" });
+        }
+
+        // Update the quantity and urgency for the found need
+        nonprofit.needs[needIndex].quantity = need.quantity;
+        nonprofit.needs[needIndex].urgency = need.urgency;
+
+        // Save the updated nonprofit
+        await nonprofit.save();
+        
+        res.json({ message: "Need updated successfully", nonprofit });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
