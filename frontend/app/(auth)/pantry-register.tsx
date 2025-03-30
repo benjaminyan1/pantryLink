@@ -1,15 +1,18 @@
 import { useState } from "react";
 import {
+  Image,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   ScrollView,
   Alert,
+  View,
 } from "react-native";
 import { router } from "expo-router";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Config } from "@/constants/Config";
+import { FontAwesome5 } from "@expo/vector-icons";
 
 export default function PantryRegisterScreen() {
   const [organizationName, setOrganizationName] = useState("");
@@ -93,64 +96,99 @@ export default function PantryRegisterScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <ThemedView style={styles.container}>
-        <ThemedText type="title" style={styles.title}>
-          Pantry Registration
-        </ThemedText>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Organization Name"
-          placeholderTextColor="#666"
-          value={organizationName}
-          onChangeText={setOrganizationName}
+      <ThemedView style={styles.container} lightColor="#f8f9fa">
+        <View style={styles.logoContainer}>
+          
+        <Image 
+          source={require('@/assets/images/IMG_4699.jpeg')} 
+          style={styles.logoImage} 
+          resizeMode="contain"
         />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Address"
-          placeholderTextColor="#666"
-          value={address}
-          onChangeText={setAddress}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#666"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Phone Number"
-          placeholderTextColor="#666"
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#666"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          <ThemedText style={styles.buttonText}>
-            {loading ? "Registering..." : "Register"}
+          <ThemedText type="title" style={styles.title}>
+            PantryLink
           </ThemedText>
-        </TouchableOpacity>
+          <ThemedText style={styles.subtitle}>Non-Profit Registration</ThemedText>
+        </View>
+
+        <View style={styles.formContainer}>
+          <View style={styles.inputContainer}>
+            <FontAwesome5 name="store" size={16} color="#6B7280" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Organization Name"
+              placeholderTextColor="#8A9CAB"
+              value={organizationName}
+              onChangeText={setOrganizationName}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <FontAwesome5 name="map-marker-alt" size={16} color="#6B7280" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Address"
+              placeholderTextColor="#8A9CAB"
+              value={address}
+              onChangeText={setAddress}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <FontAwesome5 name="envelope" size={16} color="#6B7280" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#8A9CAB"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <FontAwesome5 name="phone-alt" size={16} color="#6B7280" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone Number"
+              placeholderTextColor="#8A9CAB"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <FontAwesome5 name="lock" size={16} color="#6B7280" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#8A9CAB"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleRegister}
+            disabled={loading}
+          >
+            <ThemedText style={styles.buttonText}>
+              {loading ? "Registering..." : "Register"}
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.loginLink}
+            onPress={() => router.push("/(auth)/pantry-login")}
+          >
+            <ThemedText style={styles.loginLinkText}>
+              Already have an account? <ThemedText style={styles.loginLinkHighlight}>Log in</ThemedText>
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
       </ThemedView>
     </ScrollView>
   );
@@ -164,37 +202,102 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    padding: 24,
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 32,
+    marginTop: 20,
+  },
+  logo: {
+    fontSize: 48,
+    marginBottom: 12,
   },
   title: {
-    marginBottom: 30,
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 8,
+    color: "#2E8B57",
     textAlign: "center",
   },
-  input: {
-    width: "100%",
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+  subtitle: {
     fontSize: 16,
-    backgroundColor: "#fff",
+    color: "#6B7280",
+    marginBottom: 8,
+  },
+  formContainer: {
+    width: "100%",
+    maxWidth: 340,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    height: 56,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  inputIcon: {
+    marginLeft: 16,
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    height: "100%",
+    fontSize: 16,
+    color: "#1F2937",
+    paddingRight: 16,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: "#2E8B57",
+    padding: 16,
+    borderRadius: 12,
     width: "100%",
-    marginTop: 10,
+    marginTop: 8,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   buttonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   buttonDisabled: {
-    backgroundColor: "#CCCCCC",
+    backgroundColor: "#9BC0B1",
+  },
+  loginLink: {
+    marginTop: 24,
+    padding: 8,
+    alignItems: "center",
+  },
+  loginLinkText: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  loginLinkHighlight: {
+    color: "#2E8B57",
+    fontWeight: "600",
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 16,
+    borderRadius: 10,
   },
 });

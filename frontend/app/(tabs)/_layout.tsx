@@ -1,6 +1,6 @@
 import { Tabs, router } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 
 import { HapticTab } from "@/components/HapticTab";
@@ -14,21 +14,36 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { isLoggedIn, isDonor } = useAuth();
 
-  console.log("Auth state in TabLayout:", { isLoggedIn, isDonor: isDonor() });
+  // Define a cohesive color palette
+  const tabColors = {
+    active: "#2E8B57", // Primary green
+    inactive: "#8E9AAB", // Muted slate gray
+    background: colorScheme === "dark" ? "#1F2937" : "#FFFFFF"
+  };
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: tabColors.active,
+        tabBarInactiveTintColor: tabColors.inactive,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: "absolute",
-          },
-          default: {},
-        }),
+        tabBarStyle: {
+          position: Platform.OS === "ios" ? "absolute" : undefined,
+          elevation: 0,
+          borderTopWidth: 0,
+          paddingTop: 10,
+          backgroundColor: tabColors.background,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+        },
+        tabBarLabelStyle: {
+          fontWeight: '500',
+          fontSize: 12,
+        }
       }}
     >
       {/* Always show Home tab */}
@@ -37,7 +52,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <FontAwesome5 name="home" size={24} color={color} />
           ),
         }}
       />

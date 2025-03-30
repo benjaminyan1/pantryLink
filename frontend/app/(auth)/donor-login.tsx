@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { Image, StyleSheet, TextInput, TouchableOpacity, Alert, View } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -44,44 +44,55 @@ export default function DonorLoginScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>
-        Donor Login
-      </ThemedText>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#666"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#666"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <ThemedText style={styles.buttonText}>
-          {loading ? "Logging in..." : "Login"}
+      <View style={styles.logoContainer}>
+        
+        <Image 
+          source={require('@/assets/images/IMG_4699.jpeg')} 
+          style={styles.logoImage} 
+          resizeMode="contain"
+        />
+        <ThemedText type="title" style={styles.title}>
+          PantryLink
         </ThemedText>
-      </TouchableOpacity>
+        <ThemedText style={styles.subtitle}>Donor Login</ThemedText>
+      </View>
 
-      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <ThemedText style={styles.registerButtonText}>
-          Don't have an account? Register
-        </ThemedText>
-      </TouchableOpacity>
+      <View style={styles.formContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#8A9CAB"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#8A9CAB"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <ThemedText style={styles.buttonText}>
+            {loading ? "Logging in..." : "Log In"}
+          </ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+          <ThemedText style={styles.registerButtonText}>
+            Don't have an account? <ThemedText style={styles.registerLink}>Register</ThemedText>
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }
@@ -91,45 +102,91 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    padding: 24,
+    backgroundColor: "#F9F9FB",
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  logo: {
+    fontSize: 48,
+    marginBottom: 10,
   },
   title: {
-    marginBottom: 30,
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 8,
+    color: "#2E8B57", // Primary brand color
     textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginBottom: 10,
+  },
+  formContainer: {
+    width: "100%",
+    maxWidth: 340,
   },
   input: {
     width: "100%",
-    height: 50,
+    height: 56,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
     fontSize: 16,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: "#2E8B57", // Primary brand color
+    padding: 16,
+    borderRadius: 12,
     width: "100%",
-    marginTop: 10,
+    marginTop: 16,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   buttonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   registerButton: {
-    marginTop: 15,
-    padding: 10,
+    marginTop: 24,
+    padding: 8,
+    alignItems: "center",
   },
   registerButtonText: {
-    color: "#007AFF",
+    color: "#6B7280",
     fontSize: 14,
   },
+  registerLink: {
+    color: "#2E8B57",
+    fontWeight: "600",
+  },
   buttonDisabled: {
-    backgroundColor: "#CCCCCC",
+    backgroundColor: "#9BC0B1",
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoImage: {
+    width: 150,
+    height: 150,
+    marginBottom: 16,
+    borderRadius: 10,
   },
 });

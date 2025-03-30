@@ -1,20 +1,31 @@
 import { Stack } from "expo-router";
 import React from "react";
+import { StyleSheet } from "react-native";
+import { ThemedView } from "@/components/ThemedView";
 
 export default function AuthLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false, // Hide the default header
-        animation: 'slide_from_left', // Animation for pushing to next screen
-        animationTypeForReplace: 'pop', // Animation for going back
-      }}
-    >
-      <Stack.Screen name="login" />
-      <Stack.Screen name="donor-login" />
-      <Stack.Screen name="donor-register" />
-      <Stack.Screen name="pantry-login" />
-      <Stack.Screen name="pantry-register" />
-    </Stack>
+    <ThemedView style={styles.container} lightColor="#f8f9fa">
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          animationTypeForReplace: 'pop',
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      >
+        <Stack.Screen name="login" />
+        <Stack.Screen name="donor-login" />
+        <Stack.Screen name="donor-register" />
+        <Stack.Screen name="pantry-login" />
+        <Stack.Screen name="pantry-register" />
+      </Stack>
+    </ThemedView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

@@ -10,6 +10,7 @@ import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { FontAwesome5 } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const { isLoggedIn, user } = useAuth();
@@ -581,7 +582,6 @@ export default function HomeScreen() {
                 {item.expirationDate && (
                   <ThemedText>Expires: {new Date(item.expirationDate).toLocaleDateString()}</ThemedText>
                 )}
-                <ThemedText>Status: {item.status}</ThemedText>
               </View>
               
               <View style={styles.actionButtons}>
@@ -589,14 +589,22 @@ export default function HomeScreen() {
                   style={[styles.actionButton, styles.editButton]} 
                   onPress={() => openEditModal(item)}
                 >
-                  <ThemedText style={styles.actionButtonText}>Edit</ThemedText>
+                  {/* <ThemedText style={styles.actionButtonText}>Edit</ThemedText> */}
+                  <View style={styles.actionButtonContainer}>
+                    <FontAwesome5 name="pen" size={13} color="#000" style={styles.editIcon} />
+                    <ThemedText style={styles.actionButtonText}>Edit</ThemedText>
+                  </View>
+
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
                   style={[styles.actionButton, styles.deleteButton]} 
                   onPress={() => handleDeleteDonation(item.item._id)}
                 >
+                  <View style={styles.actionButtonContainer}>
+                    <FontAwesome5 name="trash" size={13} color="#000" style={styles.editIcon} />
                   <ThemedText style={styles.actionButtonText}>Delete</ThemedText>
+                  </View>
                 </TouchableOpacity>
               </View>
             </ThemedView>
@@ -1039,7 +1047,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   loginButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#4A90E2',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -1111,7 +1119,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   editButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#4A90E2',
   },
   deleteButton: {
     backgroundColor: '#FF3B30',
@@ -1183,11 +1191,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   createBtn: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#2E8B57',
     marginRight: 5,
   },
   scanBtn: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#9BC0B1',
     marginLeft: 5,
   },
   imagePreview: {
@@ -1222,4 +1230,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 5,
   },
+  actionButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editIcon: {
+    marginRight: 8, // spacing between icon and text
+  },
+  actionButtonText: {
+    fontSize: 16,
+    // other styles you had
+  },
+
 });
+
