@@ -1,11 +1,11 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import { StyleSheet, Image, Platform, View, ScrollView } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useEffect, useState, useRef } from 'react';
 import * as Location from 'expo-location';
+import { Table, Row, Rows } from 'react-native-table-component';
 
 import { Collapsible } from '@/components/Collapsible';
 import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -15,7 +15,14 @@ export default function ExploreScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [nonprofitMarkers, setNonprofitMarkers] = useState<{ name: string, latitude: number, longitude: number }[]>([]);
+
+  const [nonprofitMarkers, setNonprofitMarkers] = useState<
+    { id: string; name: string; latitude: number; longitude: number }[]
+  >([]);
+
+  const [selectedNonprofitId, setSelectedNonprofitId] = useState<string | null>(null);
+  const [selectedNonprofitName, setSelectedNonprofitName] = useState<string | null>(null);
+  const [nonprofitNeeds, setNonprofitNeeds] = useState<any[]>([]);
   const mapRef = useRef<MapView | null>(null);
 
   useEffect(() => {
@@ -60,17 +67,23 @@ export default function ExploreScreen() {
       try {
         const res = await fetch(process.env.EXPO_PUBLIC_API_URL + '/api/nonprofit/addresses');
         const data: Record<string, string> = await res.json(); // data is { nonprofitId: address }
-        console.log(data);
-    
+
         const geocoded = await Promise.all(
           Object.entries(data).map(async ([nonprofitId, address]) => {
+            // Fetch name from profile
+            const profileRes = await fetch(
+              process.env.EXPO_PUBLIC_API_URL + `/api/nonprofit/profile/${nonprofitId}`
+            );
+            const profileData = await profileRes.json();
+            const nonprofitName = profileData.organizationName || nonprofitId;
+
             const cleanedAddress = address
               .replace(/[’]/g, "'")
               .replace(/\s{2,}/g, ' ')
               .trim();
-    
+
             const geoRes = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanedAddress + ', USA')}&key=AIzaSyCxiEwZYao45RGv-9Fs85jBdYxYWfvztFs`
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanedAddress + ', USA')}&key=AIzaSyCxiEwZYao45RGv-9Fs85jBdYxYWfvztFs` //yea i know its being publicized but whatever we are rushing
             );
             const geoData = await geoRes.json();
             const loc = geoData.results[0]?.geometry.location;
@@ -78,15 +91,16 @@ export default function ExploreScreen() {
               console.warn('No geocode result for:', cleanedAddress);
               return null;
             }
-    
+
             return {
-              name: nonprofitId, // If you want to use the actual name, fetch that separately
+              id: nonprofitId,
+              name: nonprofitName,
               latitude: loc.lat,
               longitude: loc.lng,
             };
           })
         );
-    
+
         setNonprofitMarkers(geocoded.filter(Boolean) as typeof nonprofitMarkers);
       } catch (err) {
         console.error('Failed to fetch nonprofits:', err);
@@ -96,17 +110,22 @@ export default function ExploreScreen() {
     fetchNonprofits();
   }, []);
 
+  const handleMarkerPress = async (nonprofitId: string, nonprofitName: string) => {
+    setSelectedNonprofitId(nonprofitId);
+    setSelectedNonprofitName(nonprofitName);
+    try {
+      const res = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${nonprofitId}`
+      );
+      const data = await res.json();
+      setNonprofitNeeds(data || []);
+    } catch (error) {
+      console.error('Failed to fetch needs:', error);
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
+    <ScrollView style={{ backgroundColor: '#fff' }}>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Explore</ThemedText>
       </ThemedView>
@@ -127,33 +146,51 @@ export default function ExploreScreen() {
               key={idx}
               coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
               title={marker.name}
+              onPress={() => handleMarkerPress(marker.id, marker.name)}
               pinColor="orange"
             />
           ))}
         </MapView>
+        {selectedNonprofitId && nonprofitNeeds.length > 0 && (
+          <ThemedView style={{ marginTop: 20 }}>
+            <ThemedText type="subtitle">
+              {selectedNonprofitName}'s Needs
+            </ThemedText>
+            <View style={{ backgroundColor: 'white', padding: 10, borderRadius: 8 }}>
+              <Table>
+                <Row
+                  data={['Item ID', 'Quantity', 'Urgency']}
+                  style={{ height: 40 }}
+                  textStyle={{ fontWeight: 'bold' }}
+                />
+                <Rows
+                  data={nonprofitNeeds.map((need) => [
+                    need.itemName,
+                    need.quantity,
+                    need.urgency,
+                  ])}
+                />
+              </Table>
+            </View>
+          </ThemedView>
+        )}
       </ThemedView>
-
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+    paddingTop: 100,
+    paddingHorizontal: 16,
   },
   mapContainer: {
     height: 300,
     marginVertical: 20,
-    borderRadius: 10,
+    marginHorizontal: 16,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   map: {

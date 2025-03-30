@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const Item = require("../models/item"); // Adjust the path to match the correct casing
 const Delivery = require('../models/delivery');
+const Delivery = require('../models/delivery');
 // Import nonprofit model
 const axios = require('axios');
 const Nonprofit = require("../models/Nonprofit");
@@ -35,6 +36,7 @@ router.get("/profile/:id", async (req, res) => {
 
 // Update profile
 // Don't need to implement this because nonprofits aren't changing their profile
+// Don't need to implement this because nonprofits aren't changing their profile
 router.put("/profile/:id", async (req, res) => {
     try {
         const updatedNonprofit = await Nonprofit.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -43,10 +45,13 @@ router.put("/profile/:id", async (req, res) => {
         } 
         res.json(updatedNonprofit);
     } catch (error) { 
+    } catch (error) { 
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
 
+// Get a dictionary from id to addresses
+// WORKS 
 // Get a dictionary from id to addresses
 // WORKS 
 router.get("/addresses", async (req, res) => {
@@ -65,6 +70,7 @@ router.get("/addresses", async (req, res) => {
 });
 
 // Post request for ID does not work because it's not checking the ID correctly or something, 
+// WORKS
 // WORKS
 router.post("/needs/:id", async (req, res) => {
     try {
@@ -105,9 +111,12 @@ router.post("/needs/:id", async (req, res) => {
 });
 
 // works
+// works
 router.get("/needs/:id", async (req, res) => {
     try {
         const nonprofitId = req.params.id; // Get nonprofit ID from the request parameters
+        const nonprofit = await Nonprofit.findById(nonprofitId)
+            .populate("needs.itemId", "name");
         const nonprofit = await Nonprofit.findById(nonprofitId)
             .populate("needs.itemId", "name");
         if (!nonprofit) {
@@ -167,10 +176,11 @@ router.put("/needs/:id/priority", async (req, res) => {
         const nonprofit = await Nonprofit.findOne({ "needs._id": req.params.id });
         if (!nonprofit) {
             return res.status(404).json({ message: "Need not found" });
-    } 
+        } 
         const need = nonprofit.needs.id(req.params.id);
         need.urgency = priority;
         await nonprofit.save();
+        res.json({ message: "Priority updated" });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
