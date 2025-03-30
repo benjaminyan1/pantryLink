@@ -3,7 +3,6 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const Item = require("../models/item"); // Adjust the path to match the correct casing
 const Delivery = require('../models/delivery');
-const Delivery = require('../models/delivery');
 // Import nonprofit model
 const axios = require('axios');
 const Nonprofit = require("../models/Nonprofit");
@@ -36,7 +35,6 @@ router.get("/profile/:id", async (req, res) => {
 
 // Update profile
 // Don't need to implement this because nonprofits aren't changing their profile
-// Don't need to implement this because nonprofits aren't changing their profile
 router.put("/profile/:id", async (req, res) => {
     try {
         const updatedNonprofit = await Nonprofit.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -44,7 +42,6 @@ router.put("/profile/:id", async (req, res) => {
             return res.status(404).json({ message: "Nonprofit not found" });
         } 
         res.json(updatedNonprofit);
-    } catch (error) { 
     } catch (error) { 
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -77,7 +74,7 @@ router.post("/needs/:id", async (req, res) => {
         const { need } = req.body;  
         const nonprofitId = req.params.id;  
         const nonprofit = await Nonprofit.findById(nonprofitId);
-        const item = await Item.findOne({ name: need.itemName });
+        let item = await Item.findOne({ name: need.itemName });
         if (!nonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
         }
@@ -117,8 +114,6 @@ router.get("/needs/:id", async (req, res) => {
         const nonprofitId = req.params.id; // Get nonprofit ID from the request parameters
         const nonprofit = await Nonprofit.findById(nonprofitId)
             .populate("needs.itemId", "name");
-        const nonprofit = await Nonprofit.findById(nonprofitId)
-            .populate("needs.itemId", "name");
         if (!nonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
         }
@@ -153,7 +148,6 @@ router.post("/donations/:id", async (req, res) => {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
-
 
 // DOESNT DO WHAT WE WANT, need to get all the id's in the array and then get the delivery information from the delivery model
 // router.get("/donations/:id", async (req, res) => {
