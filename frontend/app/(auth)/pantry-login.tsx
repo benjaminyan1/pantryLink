@@ -7,31 +7,29 @@ import { Config } from '@/constants/Config';
 import { useAuth } from '@/context/AuthContext';
 
 export default function PantryLoginScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password");
+      Alert.alert('Error', 'Please enter both email and password');
       return;
     }
-
+    
     setLoading(true);
-
+    
     try {
       await login(email, password, 'nonprofit');
       
       // Navigate to main app
       router.replace('/');
     } catch (error) {
-      console.error("Login error:", error);
+      console.error('Login error:', error);
       Alert.alert(
-        "Login Failed",
-        error instanceof Error
-          ? error.message
-          : "Please check your credentials and try again"
+        'Login Failed', 
+        error instanceof Error ? error.message : 'Please check your credentials and try again'
       );
     } finally {
       setLoading(false);
@@ -39,48 +37,32 @@ export default function PantryLoginScreen() {
   };
 
   const handleRegister = () => {
-    router.push("/(auth)/pantry-register");
+    router.push('/(auth)/pantry-register');
   };
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>
-        Pantry Login
-      </ThemedText>
-
+      <ThemedText type="title" style={styles.title}>Pantry Login</ThemedText>
+      
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Username"
         placeholderTextColor="#666"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
       />
-
+      
       <TextInput
         style={styles.input}
         placeholder="Password"
         placeholderTextColor="#666"
         secureTextEntry
-        value={password}
-        onChangeText={setPassword}
       />
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <ThemedText style={styles.buttonText}>
-          {loading ? "Logging in..." : "Login"}
-        </ThemedText>
+      
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <ThemedText style={styles.buttonText}>Login</ThemedText>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <ThemedText style={styles.registerButtonText}>
-          Don't have an account? Register
-        </ThemedText>
+        <ThemedText style={styles.registerButtonText}>Don't have an account? Register</ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );
@@ -89,47 +71,44 @@ export default function PantryLoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
   },
   title: {
     marginBottom: 30,
-    textAlign: "center",
+    textAlign: 'center',
   },
   input: {
-    width: "100%",
+    width: '100%',
     height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: '#007AFF',
     padding: 15,
     borderRadius: 10,
-    width: "100%",
+    width: '100%',
     marginTop: 10,
-    alignItems: "center",
+    alignItems: 'center',
   },
   buttonText: {
-    color: "white",
+    color: 'white',
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   registerButton: {
     marginTop: 15,
     padding: 10,
   },
   registerButtonText: {
-    color: "#007AFF",
+    color: '#007AFF',
     fontSize: 14,
   },
-  buttonDisabled: {
-    backgroundColor: "#CCCCCC",
-  },
-});
+}); 
