@@ -58,11 +58,11 @@ const deliverySchema = new mongoose.Schema({
         quantity: Number
     }],  
     estimatedTime: {
-        type: Number,  // in minutes
+        type: Number, 
         default: 30
     },
     distance: {
-        type: Number,  // in kilometers
+        type: Number,  
         default: 0
     },
     notes: String,
@@ -73,7 +73,6 @@ const deliverySchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for geospatial queries
 deliverySchema.index({ "pickup.location": "2dsphere" });
 deliverySchema.index({ "dropoff.location": "2dsphere" });
 

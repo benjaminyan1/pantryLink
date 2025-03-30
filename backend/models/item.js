@@ -5,7 +5,7 @@ const itemSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
-        unique: true  // Add unique constraint
+        unique: true
     }
 }, {
     timestamps: true

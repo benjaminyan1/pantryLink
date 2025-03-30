@@ -1,7 +1,7 @@
 const Delivery = require('../models/delivery');
 const Item = require('../models/item');
 
-// Create a delivery
+
 const createDelivery = async (req, res) => {
     try {
         const {
@@ -13,7 +13,7 @@ const createDelivery = async (req, res) => {
             items
         } = req.body;
 
-        // Verify all items exist
+        
         for (let item of items) {
             const itemExists = await Item.findById(item.item);
             if (!itemExists) {
@@ -33,8 +33,8 @@ const createDelivery = async (req, res) => {
             status: 'pending'
         });
 
-        // Populate item details before sending response
-        // Change this to .save or .create later for post requests
+        
+        
         await delivery.populate('items.item');
         
         res.status(201).json(delivery);
@@ -43,7 +43,7 @@ const createDelivery = async (req, res) => {
     }
 };
 
-// View a delivery
+
 const getDelivery = async (req, res) => {
     try {
         const delivery = await Delivery.findById(req.params.id)
@@ -62,7 +62,7 @@ const getDelivery = async (req, res) => {
     }
 };
 
-// Update delivery status
+
 const updateDeliveryStatus = async (req, res) => {
     try {
         const { status } = req.body;
@@ -79,7 +79,7 @@ const updateDeliveryStatus = async (req, res) => {
             return res.status(404).json({ error: 'Delivery not found' });
         }
 
-        // Update status and corresponding timestamp
+        
         delivery.status = status;
         if (status === 'picked_up') {
             delivery.pickedUpAt = new Date();
@@ -94,11 +94,11 @@ const updateDeliveryStatus = async (req, res) => {
     }
 };
 
-// View all deliveries for a user
+
 const getUserDeliveries = async (req, res) => {
     try {
         const userId = req.params.id;
-        const userType = req.query.type; // 'donor', 'dasher', or 'nonprofit'
+        const userType = req.query.type; 
 
         let query = {};
         if (userType === 'donor') {
