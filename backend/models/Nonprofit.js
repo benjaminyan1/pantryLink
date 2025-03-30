@@ -17,7 +17,7 @@ const nonprofitSchema = new mongoose.Schema({
 
   needs: [
     {
-      itemName: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
+      itemName: { type: String, required: true },
       quantity: { type: Number, required: true },
       urgency: { 
         type: Number, 
