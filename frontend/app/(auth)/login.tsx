@@ -14,10 +14,7 @@ export default function LoginScreen() {
   };
   
   const handleBackToHome = () => {
-    router.replace('/(tabs)', {
-      // Add animation options to make it slide from left (like a back action)
-      animationType: 'slide_from_left'
-    });
+    router.replace('/(tabs)', {});
   };
 
   return (

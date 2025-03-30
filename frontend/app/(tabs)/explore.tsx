@@ -15,6 +15,7 @@ export default function ExploreScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [nonprofitMarkers, setNonprofitMarkers] = useState<{ name: string, latitude: number, longitude: number }[]>([]);
   const mapRef = useRef<MapView | null>(null);
 
   useEffect(() => {
@@ -54,6 +55,45 @@ export default function ExploreScreen() {
         subscription?.remove();
       };
     })();
+
+    const fetchNonprofits = async () => {
+      try {
+        const res = await fetch(process.env.EXPO_PUBLIC_API_URL + '/api/nonprofit/addresses');
+        const data: Record<string, string> = await res.json(); // data is { nonprofitId: address }
+        console.log(data);
+    
+        const geocoded = await Promise.all(
+          Object.entries(data).map(async ([nonprofitId, address]) => {
+            const cleanedAddress = address
+              .replace(/[’]/g, "'")
+              .replace(/\s{2,}/g, ' ')
+              .trim();
+    
+            const geoRes = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanedAddress + ', USA')}&key=AIzaSyCxiEwZYao45RGv-9Fs85jBdYxYWfvztFs`
+            );
+            const geoData = await geoRes.json();
+            const loc = geoData.results[0]?.geometry.location;
+            if (!loc) {
+              console.warn('No geocode result for:', cleanedAddress);
+              return null;
+            }
+    
+            return {
+              name: nonprofitId, // If you want to use the actual name, fetch that separately
+              latitude: loc.lat,
+              longitude: loc.lng,
+            };
+          })
+        );
+    
+        setNonprofitMarkers(geocoded.filter(Boolean) as typeof nonprofitMarkers);
+      } catch (err) {
+        console.error('Failed to fetch nonprofits:', err);
+      }
+    };
+
+    fetchNonprofits();
   }, []);
 
   return (
@@ -82,78 +122,19 @@ export default function ExploreScreen() {
               strokeColor="rgba(0, 122, 255, 0.5)"
             />
           )}
+          {nonprofitMarkers.map((marker, idx) => (
+            <Marker
+              key={idx}
+              coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+              title={marker.name}
+              pinColor="orange"
+            />
+          ))}
         </MapView>
       </ThemedView>
 
       <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
+
     </ParallaxScrollView>
   );
 }
