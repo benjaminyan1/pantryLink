@@ -67,12 +67,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         throw new Error(data.error || 'Login failed');
       }
 
+
       // Store the token securely
       await SecureStore.setItemAsync('token', data.tokens.access_token);
       
       // Store user data
       const userData = {
-        id: data.user._id || data.user.id,
+        id: data.user._id,
         name: data.user.name,
         email: data.user.email,
         userType: data.user.userType || userType,

@@ -1,14 +1,17 @@
-import { StyleSheet, Image, Platform, View, ScrollView } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useEffect, useState, useRef } from 'react';
 import * as Location from 'expo-location';
 import { Table, Row, Rows } from 'react-native-table-component';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+
+const tableStyles = StyleSheet.create({
+  headerText: {
+    fontWeight: 'bold',
+  },
+});
 
 export default function ExploreScreen() {
   const [userLocation, setUserLocation] = useState<{
@@ -66,11 +69,10 @@ export default function ExploreScreen() {
     const fetchNonprofits = async () => {
       try {
         const res = await fetch(process.env.EXPO_PUBLIC_API_URL + '/api/nonprofit/addresses');
-        const data: Record<string, string> = await res.json(); // data is { nonprofitId: address }
+        const data: Record<string, string> = await res.json();
 
         const geocoded = await Promise.all(
           Object.entries(data).map(async ([nonprofitId, address]) => {
-            // Fetch name from profile
             const profileRes = await fetch(
               process.env.EXPO_PUBLIC_API_URL + `/api/nonprofit/profile/${nonprofitId}`
             );
@@ -83,7 +85,9 @@ export default function ExploreScreen() {
               .trim();
 
             const geoRes = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanedAddress + ', USA')}&key=AIzaSyCxiEwZYao45RGv-9Fs85jBdYxYWfvztFs` //yea i know its being publicized but whatever we are rushing
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+                cleanedAddress + ', USA'
+              )}&key=AIzaSyCxiEwZYao45RGv-9Fs85jBdYxYWfvztFs`
             );
             const geoData = await geoRes.json();
             const loc = geoData.results[0]?.geometry.location;
@@ -91,6 +95,14 @@ export default function ExploreScreen() {
               console.warn('No geocode result for:', cleanedAddress);
               return null;
             }
+
+            console.log('Geocoded location:', {
+              id: nonprofitId,
+              name: nonprofitName,
+              address: cleanedAddress,
+              latitude: loc.lat,
+              longitude: loc.lng,
+            });
 
             return {
               id: nonprofitId,
@@ -130,7 +142,6 @@ export default function ExploreScreen() {
         <ThemedText type="title">Explore</ThemedText>
       </ThemedView>
 
-      {/* Map Section */}
       <ThemedView style={styles.mapContainer}>
         <MapView style={styles.map} ref={mapRef}>
           {userLocation && (
@@ -151,6 +162,7 @@ export default function ExploreScreen() {
             />
           ))}
         </MapView>
+
         {selectedNonprofitId && nonprofitNeeds.length > 0 && (
           <ThemedView style={{ marginTop: 20 }}>
             <ThemedText type="subtitle">
@@ -161,7 +173,7 @@ export default function ExploreScreen() {
                 <Row
                   data={['Item ID', 'Quantity', 'Urgency']}
                   style={{ height: 40 }}
-                  textStyle={{ fontWeight: 'bold' }}
+                  textStyle={tableStyles.headerText}
                 />
                 <Rows
                   data={nonprofitNeeds.map((need) => [

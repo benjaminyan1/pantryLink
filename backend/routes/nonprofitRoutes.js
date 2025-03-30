@@ -99,13 +99,6 @@ router.post("/needs/:id", async (req, res) => {
             quantity: need.quantity,
             urgency: need.urgency
         });
-        // if (item) {
-        //     nonprofit.needs.push({
-        //     itemId: item._id, 
-        //     quantity: need.quantity,
-        //     urgency: need.urgency
-        // }); 
-        // }
 
         await nonprofit.save();
         res.json(nonprofit);

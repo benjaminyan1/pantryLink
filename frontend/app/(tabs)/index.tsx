@@ -25,6 +25,8 @@ export default function HomeScreen() {
   const [itemName, setItemName] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [expirationDate, setExpirationDate] = useState('');
+  const [needs, setNeeds] = useState([]);
+  const [urgency, setUrgency] = useState('');
 
   const handleLoginPress = () => {
     router.push('/(auth)/login');
@@ -32,10 +34,87 @@ export default function HomeScreen() {
 
   // Fetch donations when component mounts or user changes
   useEffect(() => {
-    if (isLoggedIn && user?.id) {
+    if (isLoggedIn && user?.id && user?.userType === 'donor') {
       fetchDonations();
     }
   }, [isLoggedIn, user]);
+
+  useEffect(() => {
+    if (isLoggedIn && user?.userType === 'nonprofit' && user?.id) {
+      fetchNeeds();
+    }
+  }, [isLoggedIn, user]);
+
+  const fetchNeeds = async () => {
+    try {
+      setLoading(true);
+      const token = await SecureStore.getItemAsync('token');
+      console.log('User from AuthContext:', user);
+      const incrementedLastChar = (parseInt(user.id.slice(-1), 16) + 1).toString(16).padStart(1, '0');
+      const incrementedId = user.id.slice(0, -1) + incrementedLastChar;
+      console.log(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${incrementedId}`);
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${incrementedId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch needs');
+      }
+      const data = await response.json();
+      console.log(data);
+      setNeeds(data || []);
+    } catch (error) {
+      console.error('Error fetching needs:', error);
+      Alert.alert('Error', 'Failed to load your needs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateNeed = async () => {
+    try {
+      if (!itemName || !quantity || !urgency) {
+        Alert.alert('Error', 'Please provide item name, quantity, and urgency');
+        return;
+      }
+      setLoading(true);
+      const token = await SecureStore.getItemAsync('token');
+      const incrementedLastChar = (parseInt(user.id.slice(-1), 16) + 1).toString(16).padStart(1, '0');
+      const incrementedId = user.id.slice(0, -1) + incrementedLastChar;
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${incrementedId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ "need": {
+          "itemName": itemName,
+          "quantity": parseInt(quantity),
+          "urgency": urgency}
+          
+        })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create need');
+      }
+      setCreateModalVisible(false);
+      clearNeedForm();
+      fetchNeeds();
+      Alert.alert('Success', 'Need created successfully');
+    } catch (error) {
+      console.error('Error creating need:', error);
+      Alert.alert('Error', 'Failed to create need');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearNeedForm = () => {
+    setItemName('');
+    setQuantity('1');
+    setUrgency('');
+  };
 
   const fetchDonations = async () => {
     try {
@@ -351,7 +430,7 @@ export default function HomeScreen() {
     }
   };
 
-  if (isLoggedIn) {
+  if (isLoggedIn && user?.userType === 'donor') {
     return (
       <ThemedView style={styles.container}>
         <ThemedText type="title" style={styles.title}>Your Donations</ThemedText>
@@ -593,26 +672,110 @@ export default function HomeScreen() {
       </ThemedView>
     );
   }
-
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+  
+  if (isLoggedIn && user?.userType === 'nonprofit') {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText type="title" style={styles.title}>Your Needs</ThemedText>
+        <TouchableOpacity 
+          style={[styles.actionBtn, styles.createBtn]} 
+          onPress={() => setCreateModalVisible(true)}
+          disabled={loading}
+        >
+          <ThemedText style={styles.buttonText}>Create Need</ThemedText>
+        </TouchableOpacity>
+        {loading && <ThemedText>Loading...</ThemedText>}
+        {!loading && needs.length === 0 && (
+          <ThemedText style={styles.emptyText}>
+            You don't have any needs yet. Create one to get started!
+          </ThemedText>
+        )}
+        <FlatList
+          data={needs}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          keyExtractor={(item, index) => item._id?.toString() || `need-${index}`}
+          showsVerticalScrollIndicator={true}
+          renderItem={({ item }) => (
+            <ThemedView style={styles.donationItem}>
+              <View style={styles.donationDetails}>
+                <ThemedText style={styles.itemName}>{item.itemName}</ThemedText>
+                <ThemedText>Quantity: {item.quantity}</ThemedText>
+                <ThemedText>Urgency: {item.urgency}</ThemedText>
+              </View>
+            </ThemedView>
+          )}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
+        <Modal
+          visible={createModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setCreateModalVisible(false)}
+        >
+          <ThemedView style={styles.modalOverlay}>
+            <ThemedView style={styles.modalContent}>
+              <ThemedText type="subtitle" style={styles.modalTitle}>Create Need</ThemedText>
+              <TextInput
+                style={styles.input}
+                placeholder="Item Name"
+                value={itemName}
+                onChangeText={setItemName}
+                placeholderTextColor="#666"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Quantity"
+                value={quantity}
+                onChangeText={setQuantity}
+                keyboardType="numeric"
+                placeholderTextColor="#666"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Urgency"
+                value={urgency}
+                onChangeText={setUrgency}
+                placeholderTextColor="#666"
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]} 
+                  onPress={() => {
+                    setCreateModalVisible(false);
+                    clearNeedForm();
+                  }}
+                >
+                  <ThemedText style={styles.modalButtonText}>Cancel</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.saveButton]} 
+                  onPress={handleCreateNeed}
+                  disabled={loading}
+                >
+                  <ThemedText style={styles.modalButtonText}>
+                    {loading ? 'Creating...' : 'Create'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ThemedView>
+          </ThemedView>
+        </Modal>
+      </ThemedView>
+    );
+  }
+  
+  return (
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: '#fff' }]}>
+      <ThemedView style={[styles.titleContainer, { marginTop: 60, marginHorizontal: 20 }]}>        
         <ThemedText type="title">PantryLink</ThemedText>
         <HelloWave />
       </ThemedView>
       
-      <ThemedText style={styles.tagline}>
+      <ThemedText style={[styles.tagline, { marginHorizontal: 20 }]}>
         Connecting food donors with pantries to fight hunger and reduce waste
       </ThemedText>
       
-      <ThemedView style={styles.sectionContainer}>
+      <ThemedView style={[styles.sectionContainer, { marginHorizontal: 20 }]}>
         <ThemedText type="subtitle">For Donors</ThemedText>
         <ThemedText>
           • Easily donate excess food that would otherwise go to waste{'\n'}
@@ -622,7 +785,7 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
       
-      <ThemedView style={styles.sectionContainer}>
+      <ThemedView style={[styles.sectionContainer, { marginHorizontal: 20 }]}>
         <ThemedText type="subtitle">For Food Pantries</ThemedText>
         <ThemedText>
           • Receive notifications about available food donations{'\n'}
@@ -632,7 +795,7 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
       
-      <ThemedView style={styles.ctaContainer}>
+      <ThemedView style={[styles.ctaContainer, { backgroundColor: '#fff' }]}>
         <ThemedText style={styles.ctaText}>
           Join our community today to help fight food insecurity
         </ThemedText>
@@ -640,7 +803,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.buttonText}>Login or Register</ThemedText>
         </TouchableOpacity>
       </ThemedView>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
