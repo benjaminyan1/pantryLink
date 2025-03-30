@@ -9,6 +9,7 @@ import {
 import { router } from "expo-router";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import {API_URL} from "@env"
 
 export default function DonorRegisterScreen() {
   const [fullName, setFullName] = useState("");
@@ -41,7 +42,7 @@ export default function DonorRegisterScreen() {
 
     try {
       const registerResponse = await fetch(
-        `http://10.142.45.101:3000/api/auth/signup`,
+        API_URL+`/api/auth/signup`,
         {
           method: "POST",
           headers: {

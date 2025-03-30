@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import {API_URL} from "@env"
 
 type UserType = 'donor' | 'nonprofit' | 'dasher' | null;
 
@@ -62,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      const response = await fetch(`http://10.142.47.118:3000/api/login`, {
+      const response = await fetch(API_URL + `/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
