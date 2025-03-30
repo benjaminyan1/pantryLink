@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Item = require("../models/item"); // Adjust the path to match the correct casing
 const Delivery = require('../models/delivery');
 // Import nonprofit model
+const axios = require('axios');
 const Nonprofit = require("../models/Nonprofit");
 
 // Create nonprofit profile
@@ -70,19 +71,31 @@ router.post("/needs/:id", async (req, res) => {
         const { need } = req.body;  
         const nonprofitId = req.params.id;  
         const nonprofit = await Nonprofit.findById(nonprofitId);
-
+        const item = await Item.findOne({ name: need.itemName });
         if (!nonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
         }
-        const item = await Item.findById(need.itemId);
         if (!item) {
-            return res.status(404).json({ message: "Item not found" });
+            const response = await axios.post('http://localhost:3000/api/items', {name: need.itemName});
+            item = response.data;
+            nonprofit.needs.push({
+                itemId: item._id, 
+                quantity: need.quantity,
+                urgency: need.urgency
+            });
         }
-        nonprofit.needs.push({
-            itemId: need.itemId, 
-            quantity: need.quantity,
-            urgency: need.urgency
-        });        
+        const itemExists = nonprofit.needs.some(existingNeed => existingNeed.itemId.toString() === item._id.toString());
+        
+        if (itemExists) {
+            return res.status(400).json({ message: "This item already exists in the nonprofit's needs" });
+        }
+        // if (item) {
+        //     nonprofit.needs.push({
+        //     itemId: item._id, 
+        //     quantity: need.quantity,
+        //     urgency: need.urgency
+        // }); 
+        // }
 
         await nonprofit.save();
         res.json(nonprofit);
@@ -111,18 +124,20 @@ router.get("/needs/:id", async (req, res) => {
     }
 });
 
+// Should work
 router.post("/donations/:id", async (req, res) => {
     try {
-        const { deliveryID } = req.body;
+        const { delivery } = req.body;
         const nonprofit = await Nonprofit.findById(req.params.id);
         if (!nonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
         }
-        const delivery = await Delivery.findById(deliveryID);
-        if (!delivery) {
-            return res.status(404).json({ message: "Item not found" });
+        const deliveryID = delivery.deliveryID; // Assuming delivery is an object with an _id property
+        const output = await Delivery.findById(deliveryID);
+        if (!output) {
+            return res.status(404).json({ message: "Delivery not found" });
         }
-        nonprofit.upcomingDeliveries.push(deliveryID);
+        nonprofit.upcomingDeliveries.push(output);
         await nonprofit.save();
         res.json(nonprofit);
     } catch (error) {
@@ -131,19 +146,19 @@ router.post("/donations/:id", async (req, res) => {
 });
 
 
-// I think it works, check functionality of filtering based on delivery status later
-router.get("/donations/:id", async (req, res) => {
-    try {
-        const nonprofit = await Nonprofit.findById(req.params.id);
-        if (!nonprofit) {
-            return res.status(404).json({ message: "Nonprofit not found" });
-        }
-        const deliveredDeliveries = nonprofit.upcomingDeliveries.filter(delivery => delivery.status === "delivered");
-        res.json(deliveredDeliveries);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
+// DOESNT DO WHAT WE WANT, need to get all the id's in the array and then get the delivery information from the delivery model
+// router.get("/donations/:id", async (req, res) => {
+//     try {
+//         const nonprofit = await Nonprofit.findById(req.params.id);
+//         if (!nonprofit) {
+//             return res.status(404).json({ message: "Nonprofit not found" });
+//         }
+//         const deliveredDeliveries = nonprofit.upcomingDeliveries.filter(delivery => delivery.status === "delivered");
+//         res.json(deliveredDeliveries);
+//     } catch (error) {
+//         res.status(500).json({ message: "Server error", error: error.message });
+//     }
+// });
 
 // Set priority/urgency for an item
 router.put("/needs/:id/priority", async (req, res) => { 
