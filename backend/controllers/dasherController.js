@@ -3,16 +3,16 @@ const Delivery = require('../models/delivery');
 
 
 function calculateUrgencyScore(delivery) {
-    // Your logic here. For example:
+    
     return delivery.urgencyLevel || 1;
   }
 
-// Register as a Dasher
+
 const registerDasher = async (req, res) => {
     try {
         const { auth0Id, name, email, phone, vehicle } = req.body;
         
-        // Basic validation
+        
         if (!name || !email || !phone) {
             return res.status(400).json({ error: 'Name, email, and phone are required' });
         }
@@ -32,7 +32,7 @@ const registerDasher = async (req, res) => {
     }
 };
 
-// Get Dasher profile
+
 const getDasherProfile = async (req, res) => {
     try {
         const dasher = await Dasher.findById(req.params.id);
@@ -45,10 +45,10 @@ const getDasherProfile = async (req, res) => {
     }
 };
 
-// View available deliveries nearby
+
 const getAvailableDeliveries = async (req, res) => {
     try {
-        const { lat, lng, radius = 10000 } = req.query; // radius in meters
+        const { lat, lng, radius = 10000 } = req.query; 
 
         if (!lat || !lng) {
             return res.status(400).json({ error: 'Location coordinates required' });
@@ -74,11 +74,11 @@ const getAvailableDeliveries = async (req, res) => {
     }
 };
 
-// Accept a delivery
+
 const acceptDelivery = async (req, res) => {
     try {
         const { id } = req.params;
-        const dasherId = req.body.dasherId; // Assuming this comes from authenticated user
+        const dasherId = req.body.dasherId; 
 
         const delivery = await Delivery.findById(id);
         if (!delivery) {
@@ -99,7 +99,7 @@ const acceptDelivery = async (req, res) => {
     }
 };
 
-// Get route suggestion
+
 const getDeliveryRoute = async (req, res) => {
     try {
         const delivery = await Delivery.findById(req.params.id);
@@ -107,8 +107,8 @@ const getDeliveryRoute = async (req, res) => {
             return res.status(404).json({ error: 'Delivery not found' });
         }
 
-        // Here you would integrate with a routing service (Google Maps, MapBox, etc.)
-        // For now, returning dummy data
+        
+        
         const route = {
             pickup: delivery.pickup,
             dropoff: delivery.dropoff,
@@ -122,18 +122,18 @@ const getDeliveryRoute = async (req, res) => {
     }
 };
 
-// Get urgency + proximity heatmap
+
 const getHeatmap = async (req, res) => {
     try {
         const { bounds } = req.query;
 
-        // Get all pending deliveries in the area
+        
         const deliveries = await Delivery.find({ status: 'pending' });
 
-        // Calculate heatmap data based on urgency and location
+        
         const heatmapData = deliveries.map(delivery => ({
             location: delivery.pickup,
-            weight: calculateUrgencyScore(delivery) // You'll need to implement this
+            weight: calculateUrgencyScore(delivery) 
         }));
 
         res.status(200).json(heatmapData);

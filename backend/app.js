@@ -5,26 +5,26 @@ const { MongoClient } = require('mongodb');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const fetch = require('node-fetch'); // Ensure you have node-fetch@2 installed
+const fetch = require('node-fetch'); 
 const { auth: jwtAuth, requiredScopes } = require('express-oauth2-jwt-bearer');
 const mongoose = require('mongoose');
 const nonprofit = require('./routes/nonprofitRoutes');
 app.use(express.json());
 app.use('/api/nonprofit', nonprofit);
 
-// Load environment variables
+
 dotenv.config();
 
 const port = process.env.PORT || 3000;
 
 
-// Middleware: parse request bodies and enable CORS
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 
-///////////////////
+
 const dasherRoutes = require('./routes/dasherRoutes');
 const donorRoutes = require('./routes/donorRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
@@ -36,7 +36,7 @@ app.use('/api', donorRoutes);
 app.use('/api', deliveryRoutes);
 app.use('/api', itemRoutes);
 app.use('/api', nonprofitRoutes);
-///////////////////
+
 
 
 
@@ -52,8 +52,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 });
 
 console.log("AUTH0_SECRET:", process.env.AUTH0_SECRET);
-// ----- Web Authentication using express-openid-connect -----
-// This is used for your session-based routes (e.g., / and /profile)
+
+
 const authConfig = {
   authRequired: false,
   auth0Logout: true,
@@ -65,16 +65,16 @@ const authConfig = {
 
 app.use(oidcAuth(authConfig));
 
-// ----- API Protection using express-oauth2-jwt-bearer -----
-// These middlewares protect your API endpoints that expect a bearer token.
+
+
 const checkJwt = jwtAuth({
-  audience: process.env.AUTH0_AUDIENCE, // Your API Identifier (e.g., "https://myapi.example.com")
+  audience: process.env.AUTH0_AUDIENCE, 
   issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL
 });
 
 const checkScopes = requiredScopes('read:messages');
 
-// ----- MongoDB Connection -----
+
 let db;
 
 async function connectToDatabase() {
@@ -90,8 +90,8 @@ async function connectToDatabase() {
   }
 }
 
-// ----- Helper Middleware for Web Routes -----
-// This middleware uses express-openid-connect to check if a user is authenticated.
+
+
 function requiresAuth() {
   return (req, res, next) => {
     if (!req.oidc.isAuthenticated()) {
@@ -101,8 +101,8 @@ function requiresAuth() {
   };
 }
 
-// ----- Helper to Get Auth0 Management API Token -----
-// This function uses node-fetch to get a management token from Auth0.
+
+
 const getManagementToken = async () => {
   const response = await fetch(`${process.env.AUTH0_ISSUER_BASE_URL}/oauth/token`, {
     method: 'POST',
@@ -126,7 +126,7 @@ const getManagementToken = async () => {
   return data.access_token;
 };
 
-// ----- Web Routes (using express-openid-connect) -----
+
 app.get('/', (req, res) => {
   res.send(req.oidc.isAuthenticated() ? 'Logged in' : 'Logged out');
 });
@@ -152,8 +152,8 @@ app.get('/profile', requiresAuth(), async (req, res) => {
   res.json(dbUser);
 });
 
-// ----- API Endpoints for Registration, Login, and Signup -----
-// Registration endpoint (called after Auth0 signup to store additional user info)
+
+
 app.post('/api/register', async (req, res) => {
   try {
     const { email, userType } = req.body;
@@ -177,7 +177,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Login endpoint
+
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password, userType } = req.body;
@@ -186,7 +186,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Get client credentials token - still needed for API access
+    
     const tokenResponse = await fetch(`${process.env.AUTH0_ISSUER_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -205,7 +205,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: tokenData.error_description || 'Authentication failed' });
     }
 
-    // Find the user directly in our database instead of querying Auth0
+    
     const usersCollection = db.collection('users');
     let dbUser = await usersCollection.findOne({ email });
     
@@ -213,7 +213,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
-    // If userType was specified and differs from stored type, update it
+    
     if (userType && dbUser.userType !== userType) {
       await usersCollection.updateOne(
         { email },
@@ -222,7 +222,7 @@ app.post('/api/login', async (req, res) => {
       dbUser.userType = userType;
     }
 
-    // Find the user in their specific collection (Donor, Nonprofit, Dasher)
+    
     let userModel;
     let usersKevinMao;
     switch (dbUser.userType) {
@@ -246,8 +246,8 @@ app.post('/api/login', async (req, res) => {
         break;
     }
 
-    // Return application token and user data with model-specific ID
-    // Make sure to handle the case where both might be null
+    
+    
     const userId = userModel?._id || dbUser?._id || null;
 
     if (!userId) {
@@ -271,7 +271,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Signup endpoint that creates a new user in Auth0 via the Management API
+
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { name, email, password, phone, userType, location, organizationName, address } = req.body;
@@ -280,13 +280,13 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
-    // Validate userType
+    
     const validTypes = ['donor', 'nonprofit', 'dasher'];
     if (!userType || !validTypes.includes(userType)) {
       return res.status(400).json({ error: 'Valid userType is required (donor, nonprofit, or dasher)' });
     }
     
-    // Additional validation for required fields based on user type
+    
     if (userType === 'nonprofit' && (!organizationName || !address)) {
       return res.status(400).json({ error: 'Organization name and address are required for nonprofit accounts' });
     }
@@ -295,10 +295,10 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Location is required for dasher accounts' });
     }
 
-    // Get management token for Auth0
+    
     const managementToken = await getManagementToken();
 
-    // Create the user in Auth0
+    
     const createUserResponse = await fetch(`${process.env.AUTH0_ISSUER_BASE_URL}/api/v2/users`, {
       method: 'POST',
       headers: {
@@ -326,7 +326,7 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const auth0Id = userData.user_id;
     
-    // Store in generic users collection first (for quick lookups)
+    
     const usersCollection = db.collection('users');
     await usersCollection.insertOne({
       email,
@@ -337,7 +337,7 @@ app.post('/api/auth/signup', async (req, res) => {
       createdAt: new Date()
     });
     
-    // Store in specific model collection based on userType
+    
     let userDoc;
     
     switch(userType) {
@@ -381,7 +381,7 @@ app.post('/api/auth/signup', async (req, res) => {
           phone,
           location: location || {
             address: address || '',
-            coordinates: [0, 0] // Default coordinates, should be properly set
+            coordinates: [0, 0] 
           },
           vehicle: req.body.vehicle || {},
           isAvailable: true,
@@ -403,29 +403,29 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// ----- Protected API Endpoints (using express-oauth2-jwt-bearer) -----
-// Public endpoint (no authentication needed)
+
+
 app.get('/api/public', (req, res) => {
   res.json({
     message: "Hello from a public endpoint! You don't need to be authenticated to see this."
   });
 });
 
-// Private endpoint (requires a valid JWT in the Authorization header)
+
 app.get('/api/private', checkJwt, (req, res) => {
   res.json({
     message: "Hello from a private endpoint! You need to be authenticated to see this."
   });
 });
 
-// Private endpoint with required scope 'read:messages'
+
 app.get('/api/private-scoped', checkJwt, checkScopes, (req, res) => {
   res.json({
     message: "Hello from a private endpoint! You need to be authenticated and have a scope of read:messages to see this."
   });
 });
 
-// ----- Start the Server After Connecting to MongoDB -----
+
 connectToDatabase()
   .then(() => {
     app.listen(port, () => {
