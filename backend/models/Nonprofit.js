@@ -17,21 +17,19 @@ const nonprofitSchema = new mongoose.Schema({
 
   needs: [
     {
-      itemName: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
+      itemId: { type: mongoose.Schema.Types.ObjectId, ref: "Item", required: true },
       quantity: { type: Number, required: true },
-      urgency: { type: String, enum: ["low", "medium", "high"], required: true }
+      urgency: { 
+        type: Number, 
+        min: [0, 'Urgency must be at least 0'], 
+        max: [100, 'Urgency must be at most 100'], 
+        required: true
+      }
     }
   ],
 
-  upcomingDeliveries: [
-    {
-      donorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Donor', required: true },
-      dasherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Dasher', required: true },
-      itemName: { type: String, required: true },
-      quantity: { type: Number, required: true },
-      status: { type: String, enum: ["pending", "in transit", "delivered"], default: "pending" }
-    }
-  ]
+  upcomingDeliveries:
+     [{ type: mongoose.Schema.Types.ObjectId, ref: "Delivery" }]
 });
 
 module.exports = mongoose.model("Nonprofit", nonprofitSchema);
