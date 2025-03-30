@@ -18,7 +18,7 @@ const Nonprofit = require("../models/Nonprofit");
 // });
 
 // Get nonprofit profile
-router.get("/:id", async (req, res) => {
+router.get("/donor/:id", async (req, res) => {
     try {
         const nonprofit = await Nonprofit.findById(req.params.id);
         if (!nonprofit) {
@@ -31,12 +31,12 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update profile
-router.put("/:id", async (req, res) => {
+router.put("/donor/:id", async (req, res) => {
     try {
         const updatedNonprofit = await Nonprofit.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedNonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
-        }
+        } 
         res.json(updatedNonprofit);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
@@ -46,9 +46,14 @@ router.put("/:id", async (req, res) => {
 // Get all addresses for nonprofits
 router.get("/addresses", async (req, res) => {
     try {
-        const nonprofits = await Nonprofit.find({}, { address: 1 });
-        const addresses = nonprofits.map(nonprofit => nonprofit.address);
-        res.json(addresses);
+        const nonprofits = await Nonprofit.find().lean();
+        const addressDictionary = {};
+        nonprofits.forEach(nonprofit => {
+            if (nonprofit.address) { 
+                addressDictionary[nonprofit._id] = nonprofit.address;
+            }
+        });
+        res.json(addressDictionary);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -99,17 +104,16 @@ router.get("/donations", async (req, res) => {
 });
 
 // Set priority/urgency for an item
-router.put("/needs/:id/priority", async (req, res) => {
+router.put("/needs/:id/priority", async (req, res) => { 
     try {
         const { priority } = req.body;
         const nonprofit = await Nonprofit.findOne({ "needs._id": req.params.id });
         if (!nonprofit) {
             return res.status(404).json({ message: "Need not found" });
-        }
+    } 
         const need = nonprofit.needs.id(req.params.id);
         need.urgency = priority;
         await nonprofit.save();
-        res.json(need);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
