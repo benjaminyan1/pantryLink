@@ -102,10 +102,10 @@ export default function ExploreScreen() {
   const handleMarkerPress = async (nonprofitId: string) => {
     setSelectedNonprofitId(nonprofitId);
     try {
-      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofits/${nonprofitId}`);
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${nonprofitId}`);
       const data = await res.json();
       console.log(data);
-      setNonprofitNeeds(data.needs || []);
+      setNonprofitNeeds(data || []);
     } catch (error) {
       console.error('Failed to fetch needs:', error);
     }
