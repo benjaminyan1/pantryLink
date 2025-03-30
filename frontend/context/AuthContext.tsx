@@ -81,8 +81,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       setUser(userData);
       setIsLoggedIn(true);
-      
-      console.log(`Logged in as ${userData.userType}: ${userData.name}`);
     } catch (error) {
       console.error('Error during login:', error);
       throw error;
