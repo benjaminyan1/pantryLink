@@ -1,7 +1,8 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import { StyleSheet, Image, Platform, View } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useEffect, useState, useRef } from 'react';
 import * as Location from 'expo-location';
+import { Table, Row, Rows } from 'react-native-table-component';
 
 import { Collapsible } from '@/components/Collapsible';
 import { ExternalLink } from '@/components/ExternalLink';
@@ -16,6 +17,8 @@ export default function ExploreScreen() {
     longitude: number;
   } | null>(null);
   const [nonprofitMarkers, setNonprofitMarkers] = useState<{ name: string, latitude: number, longitude: number }[]>([]);
+  const [selectedNonprofitId, setSelectedNonprofitId] = useState<string | null>(null);
+  const [nonprofitNeeds, setNonprofitNeeds] = useState<any[]>([]);
   const mapRef = useRef<MapView | null>(null);
 
   useEffect(() => {
@@ -96,6 +99,18 @@ export default function ExploreScreen() {
     fetchNonprofits();
   }, []);
 
+  const handleMarkerPress = async (nonprofitId: string) => {
+    setSelectedNonprofitId(nonprofitId);
+    try {
+      const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/nonprofit/needs/${nonprofitId}`);
+      const data = await res.json();
+      console.log(data);
+      setNonprofitNeeds(data || []);
+    } catch (error) {
+      console.error('Failed to fetch needs:', error);
+    }
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -127,10 +142,28 @@ export default function ExploreScreen() {
               key={idx}
               coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
               title={marker.name}
+              onPress={() => handleMarkerPress(marker.name)}
               pinColor="orange"
             />
           ))}
         </MapView>
+        {selectedNonprofitId && nonprofitNeeds.length > 0 && (
+          <ThemedView style={{ marginTop: 20 }}>
+            <ThemedText type="subtitle">Needs</ThemedText>
+            <View style={{ backgroundColor: 'white', padding: 10, borderRadius: 8 }}>
+              <Table>
+                <Row data={['Item ID', 'Quantity', 'Urgency']} style={{ height: 40 }} textStyle={{ fontWeight: 'bold' }} />
+                <Rows
+                  data={nonprofitNeeds.map((need) => [
+                    need.itemName,
+                    need.quantity,
+                    need.urgency
+                  ])}
+                />
+              </Table>
+            </View>
+          </ThemedView>
+        )}
       </ThemedView>
 
       <ThemedText>This app includes example code to help you get started.</ThemedText>
