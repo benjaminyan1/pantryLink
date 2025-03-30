@@ -28,6 +28,7 @@ PantryLink is a full-stack community-powered platform that connects individuals 
 - **Expo Router** – Navigation
 - **Context API** – Authentication and global state handling
 
+---
 
 # How to Run the Application
 Clone the repository and navigate into the project folder: cd pantryLink
