@@ -1,119 +1,12 @@
-// const { GoogleGenerativeAI } = require('@google/generative-ai'); // For Gemini API
-// const Donor = require('../models/Donor');
-// const Item = require('../models/item'); // Add this import
-
-// // Initialize Gemini API (you'll need to add your API key in environment variables)
-// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// // Create a new donation
-// const createDonation = async (req, res) => {
-//     try {
-//         const { items } = req.body;
-        
-//         // Basic validation
-//         if (!items || !Array.isArray(items) || items.length === 0) {
-//             return res.status(400).json({ error: 'Items array is required' });
-//         }
-
-//         // Verify all items exist in the database
-//         for (let donationItem of items) {
-//             const itemExists = await Item.findById(donationItem.item);
-//             if (!itemExists) {
-//                 return res.status(400).json({ 
-//                     error: `Item with ID ${donationItem.item} not found` 
-//                 });
-//             }
-//         }
-
-//         // Rest of your creation logic
-//         res.status(201).json({ message: 'Donation created successfully' });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// // Upload and process donation image
-// const uploadDonationImage = async (req, res) => {
-//     try {
-//         // Implementation for processing image with Gemini API
-//         res.status(200).json({ message: 'Image processed successfully' });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// // Get a specific donation
-// const getDonation = async (req, res) => {
-//     try {
-//         const donation = await Donor.findById(req.params.id)
-//             .populate('donations.item'); // Add this populate
-//         if (!donation) {
-//             return res.status(404).json({ error: 'Donation not found' });
-//         }
-//         res.status(200).json(donation);
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// // Update a donation
-// const updateDonation = async (req, res) => {
-//     try {
-//         // Implementation for updating a donation
-//         res.status(200).json({ message: 'Donation updated successfully' });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// // Delete a donation
-// const deleteDonation = async (req, res) => {
-//     try {
-//         // Implementation for deleting a donation
-//         res.status(200).json({ message: 'Donation deleted successfully' });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// // Get donation matches
-// const getDonationMatches = async (req, res) => {
-//     try {
-//         // Implementation for finding matching nonprofits
-//         res.status(200).json({ message: 'Matches found successfully' });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// // Get nearby nonprofits
-// const getNearbyNonprofits = async (req, res) => {
-//     try {
-//         // Implementation for finding nearby nonprofits
-//         res.status(200).json({ message: 'Nearby nonprofits found successfully' });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
-
-// module.exports = {
-//     createDonation,
-//     uploadDonationImage,
-//     getDonation,
-//     updateDonation,
-//     deleteDonation,
-//     getDonationMatches,
-//     getNearbyNonprofits
-// }; 
-
-
-// const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Donor = require('../models/Donor');
 const Item = require('../models/item');
+const Nonprofit = require('../models/Nonprofit');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fs = require('fs').promises;
+const path = require('path');
 
-// If you actually use the Gemini API, this is fine.
-// Otherwise, feel free to remove it.
-// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialize the Google Generative AI API with your API key
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Creates a new donation (subdocument) for an existing Donor.
@@ -121,7 +14,7 @@ const Item = require('../models/item');
  * {
  *   donorId: "abc123...",
  *   items: [
- *     { item: "itemId", quantity: 1, expirationDate: "2025-12-31", ... },
+ *     { name: "Item Name", quantity: 1, expirationDate: "2025-12-31", ... },
  *     ...
  *   ]
  * }
@@ -138,29 +31,96 @@ const createDonation = async (req, res) => {
       return res.status(400).json({ error: 'Items array is required' });
     }
 
-    // Verify each item ID exists
-    for (let donationItem of items) {
-      const itemExists = await Item.findById(donationItem.item);
-      if (!itemExists) {
-        return res.status(400).json({
-          error: `Item with ID ${donationItem.item} not found`
-        });
-      }
-    }
-
-    // Find the donor
+    // Find the donor first to avoid multiple database calls
     const donor = await Donor.findById(donorId);
     if (!donor) {
       return res.status(404).json({ error: 'Donor not found' });
     }
 
-    // Append new donations to the donor's "donations" array
-    // Each element matches the DonationItemSchema in Donor.js
-    donor.donations.push(...items);
+    // Process each item, creating new ones if needed
+    const newItems = [];
+    const updatedItems = [];
+
+    for (let donationItem of items) {
+      let itemId;
+      
+      // If item has an ID, check if it exists
+      if (donationItem.item) {
+        const itemExists = await Item.findById(donationItem.item);
+        if (!itemExists) {
+          // Create new item if ID doesn't exist but name is provided
+          if (donationItem.name) {
+            const newItem = await Item.create({ name: donationItem.name });
+            itemId = newItem._id;
+          } else {
+            return res.status(400).json({
+              error: `Item with ID ${donationItem.item} not found and no name provided to create it`
+            });
+          }
+        } else {
+          itemId = donationItem.item;
+        }
+      } 
+      // If item has a name but no ID, check if it exists or create it
+      else if (donationItem.name) {
+        // Check if item with same name already exists (case insensitive)
+        const existingItem = await Item.findOne({ 
+          name: { $regex: new RegExp(`^${donationItem.name}$`, 'i') } 
+        });
+        
+        if (existingItem) {
+          // Use existing item
+          itemId = existingItem._id;
+        } else {
+          // Create new item
+          const newItem = await Item.create({ name: donationItem.name });
+          itemId = newItem._id;
+        }
+      } else {
+        return res.status(400).json({
+          error: 'Each item must have either an item ID or a name'
+        });
+      }
+      
+      // Check if donor already has this item in their donations
+      const existingDonationIndex = donor.donations.findIndex(
+        donation => donation.item.toString() === itemId.toString() && 
+                   donation.status === 'available' &&
+                   (donationItem.expirationDate ? 
+                     donation.expirationDate && 
+                     new Date(donation.expirationDate).toDateString() === 
+                     new Date(donationItem.expirationDate).toDateString() : 
+                     !donation.expirationDate)
+      );
+
+      if (existingDonationIndex !== -1) {
+        // Increase quantity of existing donation
+        donor.donations[existingDonationIndex].quantity += donationItem.quantity || 1;
+        updatedItems.push(donor.donations[existingDonationIndex]);
+      } else {
+        // Add as new donation
+        const newDonation = {
+          item: itemId,
+          quantity: donationItem.quantity || 1,
+          expirationDate: donationItem.expirationDate,
+          imageUrl: donationItem.imageUrl,
+          status: donationItem.status || 'available'
+        };
+        newItems.push(newDonation);
+      }
+    }
+
+    // Add any new items to the donations array
+    if (newItems.length > 0) {
+      donor.donations.push(...newItems);
+    }
+
     await donor.save();
 
     return res.status(201).json({
-      message: 'Donation created successfully',
+      message: 'Donation processed successfully',
+      newItems: newItems.length,
+      updatedItems: updatedItems.length,
       donor
     });
   } catch (error) {
@@ -170,13 +130,20 @@ const createDonation = async (req, res) => {
 
 /**
  * Upload and process donation image
- * (Placeholder for integration with the Gemini API)
  */
 const uploadDonationImage = async (req, res) => {
   try {
-    // Implementation for your image processing
-    // e.g., analyzing, storing to a cloud, etc.
-    return res.status(200).json({ message: 'Image processed successfully' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+    
+    // Here you would add image processing, analysis, storage logic
+    // For now, we'll just return a mock success response
+    
+    return res.status(200).json({ 
+      message: 'Image processed successfully',
+      imageUrl: 'https://example.com/placeholder-image.jpg' // This would be your actual uploaded image URL
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -184,15 +151,16 @@ const uploadDonationImage = async (req, res) => {
 
 /**
  * Retrieve a specific Donor by ID, including all donation subdocs.
- * GET /api/donors/:id
  */
 const getDonor = async (req, res) => {
   try {
     const donor = await Donor.findById(req.params.id)
-      .populate('donations.item'); // This ensures your item details are loaded
+      .populate('donations.item');
+    
     if (!donor) {
       return res.status(404).json({ error: 'Donor not found' });
     }
+    
     return res.status(200).json(donor);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -201,14 +169,11 @@ const getDonor = async (req, res) => {
 
 /**
  * Update a single donation in the Donor's "donations" array.
- * Expects:
- *   req.params.id => the donation subdocument _id (not the Donor _id)
- *   req.body => { donorId, quantity?, expirationDate?, status?, ... }
  */
 const updateDonation = async (req, res) => {
   try {
     const donationId = req.params.id; // subdocument _id
-    const { donorId, ...updates } = req.body;
+    const { donorId, quantity, expirationDate, status, imageUrl } = req.body;
 
     if (!donorId) {
       return res.status(400).json({ error: 'donorId is required' });
@@ -220,21 +185,23 @@ const updateDonation = async (req, res) => {
       return res.status(404).json({ error: 'Donor not found' });
     }
 
-    // Locate the specific donation subdoc
-    const donationSubdoc = donor.donations.id(donationId);
-    if (!donationSubdoc) {
+    // Find donation by its ID
+    const donationIndex = donor.donations.findIndex(d => d._id.toString() === donationId);
+    
+    if (donationIndex === -1) {
       return res.status(404).json({ error: 'Donation not found' });
     }
-
-    // Update the fields on the subdoc
-    Object.keys(updates).forEach(field => {
-      donationSubdoc[field] = updates[field];
-    });
+    
+    // Update fields if provided
+    if (quantity !== undefined) donor.donations[donationIndex].quantity = quantity;
+    if (expirationDate !== undefined) donor.donations[donationIndex].expirationDate = expirationDate;
+    if (status !== undefined) donor.donations[donationIndex].status = status;
+    if (imageUrl !== undefined) donor.donations[donationIndex].imageUrl = imageUrl;
 
     await donor.save();
     return res.status(200).json({
       message: 'Donation updated successfully',
-      donor
+      donation: donor.donations[donationIndex]
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -242,10 +209,7 @@ const updateDonation = async (req, res) => {
 };
 
 /**
- * Delete a donation subdocument from the Donor's "donations" array.
- * Expects:
- *   req.params.id => the donation subdocument _id
- *   req.body => { donorId }
+ * Delete a donation from a donor's donations array
  */
 const deleteDonation = async (req, res) => {
   try {
@@ -262,17 +226,20 @@ const deleteDonation = async (req, res) => {
       return res.status(404).json({ error: 'Donor not found' });
     }
 
-    // Locate and remove the donation subdocument
-    const donationSubdoc = donor.donations.id(donationId);
-    if (!donationSubdoc) {
+    // Find donation index by ID
+    const donationIndex = donor.donations.findIndex(d => d._id.toString() === donationId);
+    
+    if (donationIndex === -1) {
       return res.status(404).json({ error: 'Donation not found' });
     }
-    donationSubdoc.remove();
-
+    
+    // Remove the donation using array splice method
+    donor.donations.splice(donationIndex, 1);
     await donor.save();
+    
     return res.status(200).json({
       message: 'Donation deleted successfully',
-      donor
+      donorId: donor._id
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -280,31 +247,233 @@ const deleteDonation = async (req, res) => {
 };
 
 /**
- * Get donation matches
- * (Placeholder logic; adapt as needed for your matching flow)
+ * Get nonprofits that have needs matching the donor's available items
  */
 const getDonationMatches = async (req, res) => {
   try {
-    // Implementation for finding matching nonprofits
-    return res.status(200).json({ message: 'Matches found successfully' });
+    const { donorId } = req.query;
+    
+    if (!donorId) {
+      return res.status(400).json({ error: 'donorId query parameter is required' });
+    }
+    
+    // Get donor with available donations
+    const donor = await Donor.findById(donorId)
+      .populate('donations.item')
+      .lean();
+    
+    if (!donor) {
+      return res.status(404).json({ error: 'Donor not found' });
+    }
+    
+    // Get available donations
+    const availableDonations = donor.donations.filter(d => d.status === 'available');
+    
+    if (availableDonations.length === 0) {
+      return res.status(200).json({ 
+        message: 'No available donations to match', 
+        matches: [] 
+      });
+    }
+    
+    // Get item IDs from available donations
+    const itemIds = availableDonations.map(d => d.item._id);
+    
+    // Find nonprofits with matching needs
+    const nonprofits = await Nonprofit.find({
+      "needs.itemName": { $in: itemIds }
+    }).lean();
+    
+    // Create matches
+    const matches = nonprofits.map(nonprofit => {
+      const matchingNeeds = nonprofit.needs.filter(need => 
+        itemIds.some(id => id.equals(need.itemName))
+      );
+      
+      return {
+        nonprofitId: nonprofit._id,
+        organizationName: nonprofit.organizationName,
+        address: nonprofit.address,
+        contactPerson: nonprofit.contactPerson,
+        matchingNeeds: matchingNeeds
+      };
+    });
+    
+    return res.status(200).json({
+      message: 'Matching nonprofits found',
+      matches: matches
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
 /**
- * Get nearby nonprofits
- * (Placeholder logic; adapt as needed for your geolocation flow)
+ * Get nearby nonprofits based on donor location
  */
 const getNearbyNonprofits = async (req, res) => {
   try {
-    // Implementation for finding nearby nonprofits
-    return res.status(200).json({ message: 'Nearby nonprofits found successfully' });
+    const { latitude, longitude, radius = 10 } = req.query; // radius in kilometers
+    
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: 'latitude and longitude are required query parameters' });
+    }
+    
+    // For now, without proper geolocation in the schema, we'll just return all nonprofits
+    // In a real implementation, you would use MongoDB's geospatial queries
+    const nonprofits = await Nonprofit.find().lean();
+    
+    return res.status(200).json({
+      message: 'Nearby nonprofits found',
+      nonprofits: nonprofits.map(np => ({
+        id: np._id,
+        organizationName: np.organizationName,
+        address: np.address,
+        contactPerson: np.contactPerson?.name
+      }))
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
+/**
+ * Process an image with Gemini Vision and create a donation from detected items
+ */
+const processImageAndCreateDonation = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    const donorId = req.body.donorId;
+    if (!donorId) {
+      return res.status(400).json({ error: 'donorId is required' });
+    }
+
+    // Find the donor first to avoid multiple database calls
+    const donor = await Donor.findById(donorId);
+    if (!donor) {
+      return res.status(404).json({ error: 'Donor not found' });
+    }
+
+    // Read the uploaded image file
+    const imagePath = req.file.path;
+    const imageData = await fs.readFile(imagePath);
+    const imageBase64 = imageData.toString('base64');
+
+    // Configure Gemini model for multimodal input
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+
+    // Prepare the prompt for Gemini
+    const prompt = `Analyze this image of food/pantry items and identify all items visible. 
+    Return a JSON array in the following format:
+    [
+      {
+        "name": "item name",
+        "quantity": estimated quantity (numeric only),
+        "expirationDate": null (or date if visible in YYYY-MM-DD format)
+      }
+    ]
+    Be specific about item names (e.g. "Canned Tomatoes" instead of just "Cans"). 
+    Make reasonable guesses for quantities based on what you can see.`;
+
+    // Send the image to Gemini API for analysis
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: req.file.mimetype,
+          data: imageBase64
+        }
+      }
+    ]);
+
+    // Parse the response to extract items
+    const responseText = result.response.text();
+    
+    // Extract JSON array from response
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      return res.status(500).json({ error: 'Failed to parse items from image analysis' });
+    }
+
+    // Parse the extracted JSON
+    const detectedItems = JSON.parse(jsonMatch[0]);
+
+    // Process each detected item, creating new ones if needed
+    const newItems = [];
+    const updatedItems = [];
+
+    for (let detectedItem of detectedItems) {
+      let itemId;
+
+      // Check if item with same name already exists (case insensitive)
+      const existingItem = await Item.findOne({ 
+        name: { $regex: new RegExp(`^${detectedItem.name}$`, 'i') } 
+      });
+      
+      if (existingItem) {
+        // Use existing item
+        itemId = existingItem._id;
+      } else {
+        // Create new item
+        const newItem = await Item.create({ name: detectedItem.name });
+        itemId = newItem._id;
+      }
+      
+      // Check if donor already has this item in their donations
+      const existingDonationIndex = donor.donations.findIndex(
+        donation => donation.item.toString() === itemId.toString() && 
+                   donation.status === 'available' &&
+                   (detectedItem.expirationDate ? 
+                     donation.expirationDate && 
+                     new Date(donation.expirationDate).toDateString() === 
+                     new Date(detectedItem.expirationDate).toDateString() : 
+                     !donation.expirationDate)
+      );
+
+      if (existingDonationIndex !== -1) {
+        // Increase quantity of existing donation
+        donor.donations[existingDonationIndex].quantity += detectedItem.quantity || 1;
+        updatedItems.push(donor.donations[existingDonationIndex]);
+      } else {
+        // Add as new donation
+        const newDonation = {
+          item: itemId,
+          quantity: detectedItem.quantity || 1,
+          expirationDate: detectedItem.expirationDate || undefined,
+          imageUrl: `/uploads/${path.basename(imagePath)}`, // Store the image path
+          status: 'available'
+        };
+        newItems.push(newDonation);
+      }
+    }
+
+    // Add any new items to the donations array
+    if (newItems.length > 0) {
+      donor.donations.push(...newItems);
+    }
+
+    await donor.save();
+
+    // Clean up the temporary image file
+    await fs.unlink(imagePath).catch(err => console.error("File cleanup error:", err));
+
+    return res.status(201).json({
+      message: 'Image processed and donation created successfully',
+      detectedItems,
+      newItems: newItems.length,
+      updatedItems: updatedItems.length,
+      donor
+    });
+  } catch (error) {
+    console.error('Error processing donation image:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Add the new function to module exports
 module.exports = {
   createDonation,
   uploadDonationImage,
@@ -312,5 +481,6 @@ module.exports = {
   updateDonation,
   deleteDonation,
   getDonationMatches,
-  getNearbyNonprofits
+  getNearbyNonprofits,
+  processImageAndCreateDonation
 };
