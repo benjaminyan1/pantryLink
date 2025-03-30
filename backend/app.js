@@ -17,10 +17,29 @@ dotenv.config();
 
 const port = process.env.PORT || 3000;
 
+
 // Middleware: parse request bodies and enable CORS
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
+
+
+///////////////////
+const dasherRoutes = require('./routes/dasherRoutes');
+const donorRoutes = require('./routes/donorRoutes');
+const deliveryRoutes = require('./routes/deliveryRoutes');
+const itemRoutes = require('./routes/itemRoutes');
+const nonprofitRoutes = require('./routes/nonprofitRoutes');
+
+app.use('/api', dasherRoutes);
+app.use('/api', donorRoutes);
+app.use('/api', deliveryRoutes);
+app.use('/api', itemRoutes);
+app.use('/api', nonprofitRoutes);
+///////////////////
+
+
+
 
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
