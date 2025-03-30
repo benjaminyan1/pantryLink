@@ -21,8 +21,6 @@ const Nonprofit = require("../models/Nonprofit");
 // Get nonprofit profile
 // WORKS
 router.get("/profile/:id", async (req, res) => {
-// WORKS
-router.get("/profile/:id", async (req, res) => {
     try {
         const nonprofit = await Nonprofit.findById(req.params.id);
         if (!nonprofit) {
@@ -73,8 +71,6 @@ router.post("/needs/:id", async (req, res) => {
     try {
         const { need } = req.body;  
         const nonprofitId = req.params.id;  
-        const { need } = req.body;  
-        const nonprofitId = req.params.id;  
         const nonprofit = await Nonprofit.findById(nonprofitId);
 
 
@@ -89,8 +85,6 @@ router.post("/needs/:id", async (req, res) => {
             itemId: need.itemId, 
             quantity: need.quantity,
             urgency: need.urgency
-        });        
-
         });        
 
         await nonprofit.save();
@@ -123,24 +117,23 @@ router.get("/needs/:id", async (req, res) => {
 
 router.post("/donations/:id", async (req, res) => {
     try {
-        const { deliveryID } = req.body;
+        const { delivery } = req.body;
         const nonprofit = await Nonprofit.findById(req.params.id);
         if (!nonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
-            return res.status(404).json({ message: "Nonprofit not found" });
         }
-        const delivery = await Delivery.findById(deliveryID);
-        if (!delivery) {
+        const deliveryID = delivery.deliveryID
+        const output = await Delivery.findById(deliveryID);
+        if (!output) {
             return res.status(404).json({ message: "Item not found" });
         }
-        nonprofit.upcomingDeliveries.push(deliveryID);
+        nonprofit.upcomingDeliveries.push(output);
         await nonprofit.save();
         res.json(nonprofit);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
-
 
 // I think it works, check functionality of filtering based on delivery status later
 router.get("/donations/:id", async (req, res) => {
@@ -163,10 +156,11 @@ router.put("/needs/:id/priority", async (req, res) => {
         const nonprofit = await Nonprofit.findOne({ "needs._id": req.params.id });
         if (!nonprofit) {
             return res.status(404).json({ message: "Need not found" });
-    } 
+        } 
         const need = nonprofit.needs.id(req.params.id);
         need.urgency = priority;
         await nonprofit.save();
+        res.json({ message: "Priority updated" });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
