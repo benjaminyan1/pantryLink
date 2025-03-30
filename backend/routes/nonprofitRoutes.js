@@ -49,17 +49,57 @@ router.put("/profile/:id", async (req, res) => {
 
 // Get a dictionary from id to addresses
 // WORKS 
-// Get a dictionary from id to addresses
-// WORKS 
 router.get("/addresses", async (req, res) => {
     try {
+        const donorId = req.query.donorId;
+
+        // If no filtering, return all addresses
+        if (!donorId) {
+            const nonprofits = await Nonprofit.find().lean();
+            const addressDictionary = {};
+            nonprofits.forEach(nonprofit => {
+                if (nonprofit.address) {
+                    addressDictionary[nonprofit._id] = nonprofit.address;
+                }
+            });
+            return res.json(addressDictionary);
+        }
+
+        // Filtered: Fetch donor's donated itemIds
+        const Donor = require('../models/Donor');
+        const donor = await Donor.findById(donorId).lean();
+        if (!donor) {
+            return res.status(404).json({ message: "Donor not found" });
+        }
+        const donorItemIds = donor.donations.map(donation => {
+            const id = donation.item || donation.itemId;
+            return id.toString();
+        });
+
         const nonprofits = await Nonprofit.find().lean();
         const addressDictionary = {};
-        nonprofits.forEach(nonprofit => {
-            if (nonprofit.address) { 
-                addressDictionary[nonprofit._id] = nonprofit.address;
+
+        for (const nonprofit of nonprofits) {
+            if (!Array.isArray(nonprofit.needs)) {
+                continue;
             }
-        });
+
+            const matches = nonprofit.needs.some(need => {
+                if (!need || !need.itemId) {
+                    return false;
+                }
+
+                const match = donorItemIds.includes(need.itemId.toString());
+                return match;
+            });
+
+            if (nonprofit.address && matches) {
+                addressDictionary[nonprofit._id] = nonprofit.address;
+            } else {
+                console.log(`⛔ No match for ${nonprofit.organizationName}`);
+            }
+        }
+
         res.json(addressDictionary);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
@@ -106,7 +146,6 @@ router.post("/needs/:id", async (req, res) => {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
-
 
 // works
 router.get("/needs/:id", async (req, res) => {
