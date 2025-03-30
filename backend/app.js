@@ -9,6 +9,7 @@ const fetch = require('node-fetch'); // Ensure you have node-fetch@2 installed
 const { auth: jwtAuth, requiredScopes } = require('express-oauth2-jwt-bearer');
 const mongoose = require('mongoose');
 const nonprofit = require('./routes/nonprofitRoutes');
+app.use(express.json());
 app.use('/api/nonprofit', nonprofit);
 
 // Load environment variables
