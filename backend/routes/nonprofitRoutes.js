@@ -246,18 +246,31 @@ router.post("/donations/:id", async (req, res) => {
 //     }
 // });
 
-// Set priority/urgency for an item
-router.put("/needs/:id/priority", async (req, res) => { 
+// Get all donations for a nonprofit sorted by priority
+// works
+router.get("/priority/:id", async (req, res) => {
     try {
-        const { priority } = req.body;
-        const nonprofit = await Nonprofit.findOne({ "needs._id": req.params.id });
+        const nonprofitId = req.params.id; // Get nonprofit ID from the request parameters
+        
+        // Find the nonprofit and populate the item details
+        const nonprofit = await Nonprofit.findById(nonprofitId)
+            .populate("needs.itemId", "name"); // Populate itemName from the Item collection
+        
         if (!nonprofit) {
-            return res.status(404).json({ message: "Need not found" });
-        } 
-        const need = nonprofit.needs.id(req.params.id);
-        need.urgency = priority;
-        await nonprofit.save();
-        res.json({ message: "Priority updated" });
+            return res.status(404).json({ message: "Nonprofit not found" });
+        }
+        
+        // Sort the needs array by urgency in descending order
+        const sortedNeeds = nonprofit.needs.sort((a, b) => b.urgency - a.urgency);
+
+        // Format the sorted needs to return item name, quantity, and urgency
+        const formattedNeeds = sortedNeeds.map(need => ({
+            itemName: need.itemId.name, // Get the item name from populated data
+            quantity: need.quantity,
+            urgency: need.urgency
+        }));
+
+        res.json(formattedNeeds); // Return the sorted needs list
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
