@@ -12,9 +12,9 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isDonor } = useAuth();
 
-  console.log("Auth state in TabLayout:", { isLoggedIn });
+  console.log("Auth state in TabLayout:", { isLoggedIn, isDonor: isDonor() });
 
   return (
     <Tabs
@@ -42,11 +42,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Explore tab - only visible when logged in */}
+      {/* Explore tab - only visible when logged in AND user is a donor */}
       <Tabs.Screen
         name="explore"
         options={{
-          href: isLoggedIn ? "/explore" : null,
+          href: isDonor() ? "/explore" : null,
           title: "Explore",
           tabBarIcon: ({ color }) => (
             <FontAwesome5 name="compass" size={24} color={color} />

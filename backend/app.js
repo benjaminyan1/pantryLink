@@ -205,7 +205,7 @@ app.post('/api/login', async (req, res) => {
     }
 
     // Find the user directly in our database instead of querying Auth0
-    const usersCollection = db.collection('donors');
+    const usersCollection = db.collection('users');
     let dbUser = await usersCollection.findOne({ email });
     
     if (!dbUser) {
@@ -221,23 +221,38 @@ app.post('/api/login', async (req, res) => {
       dbUser.userType = userType;
     }
 
-    console.log(dbUser);
-
     // Find the user in their specific collection (Donor, Nonprofit, Dasher)
     let userModel;
+    let usersKevinMao;
     switch (dbUser.userType) {
       case 'donor':
         userModel = await require('./models/Donor').findOne({ email });
+        usersKevinMao = db.collection('donors');
+        const donorDbUser = await usersKevinMao.findOne({ email });
+        if (donorDbUser) dbUser = donorDbUser;
         break;
       case 'nonprofit':
         userModel = await require('./models/Nonprofit').findOne({ 'contactPerson.email': email });
+        usersKevinMao = db.collection('nonprofits');
+        const nonprofitDbUser = await usersKevinMao.findOne({ email });
+        if (nonprofitDbUser) dbUser = nonprofitDbUser;
         break;
       case 'dasher':
         userModel = await require('./models/Dasher').findOne({ email });
+        usersKevinMao = db.collection('dashers');
+        const dasherDbUser = await usersKevinMao.findOne({ email });
+        if (dasherDbUser) dbUser = dasherDbUser;
         break;
     }
 
     // Return application token and user data with model-specific ID
+    // Make sure to handle the case where both might be null
+    const userId = userModel?._id || dbUser?._id || null;
+
+    if (!userId) {
+      return res.status(404).json({ error: 'User profile not found. Please complete registration.' });
+    }
+
     res.json({ 
       tokens: { 
         access_token: tokenData.access_token,
@@ -246,7 +261,7 @@ app.post('/api/login', async (req, res) => {
       }, 
       user: {
         ...dbUser,
-        id: userModel?._id || dbUser._id
+        id: userId
       }
     });
   } catch (error) {

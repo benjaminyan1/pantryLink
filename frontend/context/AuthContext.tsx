@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, userType: UserType) => Promise<void>;
   logout: () => Promise<void>;
+  isDonor: () => boolean; // Add this new method
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,12 +99,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
   
+  // Add new helper method to check if the current user is a donor
+  const isDonor = (): boolean => {
+    return isLoggedIn && user?.userType === 'donor';
+  };
+  
   return (
     <AuthContext.Provider value={{ 
       isLoggedIn, 
       user, 
       login, 
-      logout 
+      logout,
+      isDonor // Add the new method to the context
     }}>
       {children}
     </AuthContext.Provider>
