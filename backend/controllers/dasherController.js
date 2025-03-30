@@ -1,10 +1,16 @@
-const Dasher = require('../models/Dasher'); // You'll need to create this model
-const Delivery = require('../models/delivery'); // You'll need to create this model
+const Dasher = require('../models/Dasher');
+const Delivery = require('../models/delivery');
+
+
+function calculateUrgencyScore(delivery) {
+    // Your logic here. For example:
+    return delivery.urgencyLevel || 1;
+  }
 
 // Register as a Dasher
 const registerDasher = async (req, res) => {
     try {
-        const { name, email, phone, vehicle } = req.body;
+        const { auth0Id, name, email, phone, vehicle } = req.body;
         
         // Basic validation
         if (!name || !email || !phone) {
