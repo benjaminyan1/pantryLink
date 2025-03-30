@@ -44,25 +44,22 @@ export default function PantryRegisterScreen() {
 
     try {
       // Register with Auth0 and create nonprofit profile
-      const registerResponse = await fetch(
-        API_URL+`api/auth/signup`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: organizationName, // Use organization name as the name
-            email,
-            password,
-            phone,
-            userType: "nonprofit",
-            organizationName,
-            address,
-          }),
-        }
-      );
-
+      const registerResponse = await fetch(process.env.EXPO_PUBLIC_API_URL + `/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: organizationName, // Use organization name as the name
+          email,
+          password,
+          phone,
+          userType: 'nonprofit',
+          organizationName,
+          address
+        }),
+      });
+      
       const registerData = await registerResponse.json();
 
       if (!registerResponse.ok) {

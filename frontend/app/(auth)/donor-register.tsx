@@ -41,23 +41,20 @@ export default function DonorRegisterScreen() {
     setLoading(true);
 
     try {
-      const registerResponse = await fetch(
-        API_URL+`/api/auth/signup`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: fullName,
-            email,
-            password,
-            phone,
-            userType: "donor", // Using the updated schema with userType
-          }),
-        }
-      );
-
+      const registerResponse = await fetch(process.env.EXPO_PUBLIC_API_URL + `/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: fullName,
+          email,
+          password,
+          phone,
+          userType: 'donor' // Using the updated schema with userType
+        }),
+      });
+      
       const registerData = await registerResponse.json();
 
       if (!registerResponse.ok) {
