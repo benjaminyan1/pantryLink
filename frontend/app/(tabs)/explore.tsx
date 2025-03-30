@@ -2,7 +2,6 @@ import { StyleSheet, Image, Platform } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useEffect, useState, useRef } from 'react';
 import * as Location from 'expo-location';
-import Geocoder from 'react-native-geocoding';
 
 import { Collapsible } from '@/components/Collapsible';
 import { ExternalLink } from '@/components/ExternalLink';
@@ -20,8 +19,6 @@ export default function ExploreScreen() {
   const mapRef = useRef<MapView | null>(null);
 
   useEffect(() => {
-    Geocoder.init('YOUR_GOOGLE_MAPS_API_KEY'); // Replace with your actual key
-
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -62,13 +59,21 @@ export default function ExploreScreen() {
     const fetchNonprofits = async () => {
       try {
         const res = await fetch('http://10.142.36.197:3000/api/nonprofits/addresses');
+        console.log(res);
         const data = await res.json();
         console.log('[FETCHED NONPROFITS]', data);
 
         const geocoded = await Promise.all(
           data.map(async (np: { organizationName: string; address: string }) => {
-            const geo = await Geocoder.from(np.address);
-            const loc = geo.results[0].geometry.location;
+            const geoRes = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(np.address)}&key=`
+            );
+            const geoData = await geoRes.json();
+            const loc = geoData.results[0]?.geometry.location;
+            if (!loc) {
+              console.warn('No geocode result for:', np.address);
+              return null;
+            }
             return {
               name: np.organizationName,
               latitude: loc.lat,
@@ -76,7 +81,7 @@ export default function ExploreScreen() {
             };
           })
         );
-        setNonprofitMarkers(geocoded);
+        setNonprofitMarkers(geocoded.filter(Boolean));
       } catch (err) {
         console.error('Failed to fetch nonprofits:', err);
       }

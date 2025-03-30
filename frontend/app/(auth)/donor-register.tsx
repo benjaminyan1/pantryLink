@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -84,8 +83,6 @@ export default function DonorRegisterScreen() {
           style={styles.input}
           placeholder="Full Name"
           placeholderTextColor="#666"
-          value={fullName}
-          onChangeText={setFullName}
         />
         
         <TextInput
@@ -94,17 +91,13 @@ export default function DonorRegisterScreen() {
           placeholderTextColor="#666"
           keyboardType="email-address"
           autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
         />
         
         <TextInput
           style={styles.input}
-          placeholder="Phone Number (optional)"
+          placeholder="Phone Number"
           placeholderTextColor="#666"
           keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
         />
         
         <TextInput
@@ -112,18 +105,10 @@ export default function DonorRegisterScreen() {
           placeholder="Password"
           placeholderTextColor="#666"
           secureTextEntry
-          value={password}
-          onChangeText={setPassword}
         />
         
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          <ThemedText style={styles.buttonText}>
-            {loading ? 'Registering...' : 'Register'}
-          </ThemedText>
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <ThemedText style={styles.buttonText}>Register</ThemedText>
         </TouchableOpacity>
       </ThemedView>
     </ScrollView>
@@ -168,7 +153,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  buttonDisabled: {
-    backgroundColor: '#CCCCCC',
-  },
-});
+}); 

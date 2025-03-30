@@ -1,9 +1,7 @@
-import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { Config } from '@/constants/Config';
 
 export default function DonorLoginScreen() {
   const [email, setEmail] = useState('');
@@ -65,12 +63,8 @@ export default function DonorLoginScreen() {
       
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Username"
         placeholderTextColor="#666"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
       />
       
       <TextInput
@@ -78,24 +72,14 @@ export default function DonorLoginScreen() {
         placeholder="Password"
         placeholderTextColor="#666"
         secureTextEntry
-        value={password}
-        onChangeText={setPassword}
       />
       
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <ThemedText style={styles.buttonText}>
-          {loading ? 'Logging in...' : 'Login'}
-        </ThemedText>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <ThemedText style={styles.buttonText}>Login</ThemedText>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <ThemedText style={styles.registerButtonText}>
-          Don't have an account? Register
-        </ThemedText>
+        <ThemedText style={styles.registerButtonText}>Don't have an account? Register</ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );
@@ -144,7 +128,4 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
   },
-  buttonDisabled: {
-    backgroundColor: '#CCCCCC',
-  },
-});
+}); 

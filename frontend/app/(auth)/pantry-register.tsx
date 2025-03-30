@@ -1,9 +1,7 @@
-import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { Config } from '@/constants/Config';
 
 export default function PantryRegisterScreen() {
   const [organizationName, setOrganizationName] = useState('');
@@ -93,8 +91,6 @@ export default function PantryRegisterScreen() {
           style={styles.input}
           placeholder="Organization Name"
           placeholderTextColor="#666"
-          value={organizationName}
-          onChangeText={setOrganizationName}
         />
         
         <TextInput
@@ -133,8 +129,6 @@ export default function PantryRegisterScreen() {
           placeholderTextColor="#666"
           keyboardType="email-address"
           autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
         />
         
         <TextInput
@@ -142,8 +136,6 @@ export default function PantryRegisterScreen() {
           placeholder="Phone Number"
           placeholderTextColor="#666"
           keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
         />
         
         <TextInput
@@ -151,18 +143,10 @@ export default function PantryRegisterScreen() {
           placeholder="Password"
           placeholderTextColor="#666"
           secureTextEntry
-          value={password}
-          onChangeText={setPassword}
         />
         
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          <ThemedText style={styles.buttonText}>
-            {loading ? 'Registering...' : 'Register'}
-          </ThemedText>
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <ThemedText style={styles.buttonText}>Register</ThemedText>
         </TouchableOpacity>
       </ThemedView>
     </ScrollView>
@@ -207,7 +191,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  buttonDisabled: {
-    backgroundColor: '#CCCCCC',
-  },
-});
+}); 
