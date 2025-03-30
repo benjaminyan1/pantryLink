@@ -58,30 +58,36 @@ export default function ExploreScreen() {
 
     const fetchNonprofits = async () => {
       try {
-        const res = await fetch('http://10.142.36.197:3000/api/nonprofits/addresses');
-        console.log(res);
-        const data = await res.json();
-        console.log('[FETCHED NONPROFITS]', data);
-
+        const res = await fetch('http://10.142.36.197:3000/api/nonprofit/addresses');
+        const data: Record<string, string> = await res.json(); // data is { nonprofitId: address }
+        console.log(data);
+    
         const geocoded = await Promise.all(
-          data.map(async (np: { organizationName: string; address: string }) => {
+          Object.entries(data).map(async ([nonprofitId, address]) => {
+            const cleanedAddress = address
+              .replace(/[’]/g, "'")
+              .replace(/\s{2,}/g, ' ')
+              .trim();
+    
             const geoRes = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(np.address)}&key=`
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanedAddress + ', USA')}&key=AIzaSyCxiEwZYao45RGv-9Fs85jBdYxYWfvztFs`
             );
             const geoData = await geoRes.json();
             const loc = geoData.results[0]?.geometry.location;
             if (!loc) {
-              console.warn('No geocode result for:', np.address);
+              console.warn('No geocode result for:', cleanedAddress);
               return null;
             }
+    
             return {
-              name: np.organizationName,
+              name: nonprofitId, // If you want to use the actual name, fetch that separately
               latitude: loc.lat,
               longitude: loc.lng,
             };
           })
         );
-        setNonprofitMarkers(geocoded.filter(Boolean));
+    
+        setNonprofitMarkers(geocoded.filter(Boolean) as typeof nonprofitMarkers);
       } catch (err) {
         console.error('Failed to fetch nonprofits:', err);
       }
