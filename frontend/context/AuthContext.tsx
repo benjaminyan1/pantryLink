@@ -1,121 +1,121 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import {API_URL} from "@env"
 
-type UserType = 'donor' | 'nonprofit' | 'dasher' | null;
+// Define user types to match your backend implementation
+type UserType = 'donor' | 'nonprofit' | 'dasher';
 
 interface User {
-  id: string;
-  auth0Id: string;
+  id?: string;
+  _id?: string;
   name: string;
   email: string;
   userType: UserType;
+  // other user properties
 }
 
 interface AuthContextType {
+  isLoggedIn: boolean;
   user: User | null;
-  isLoading: boolean;
-  userType: UserType;
   login: (email: string, password: string, userType: UserType) => Promise<void>;
   logout: () => Promise<void>;
-  isLoggedIn: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isLoading: true,
-  userType: null,
-  login: async () => {},
-  logout: async () => {},
-  isLoggedIn: false
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userType, setUserType] = useState<UserType>(null);
-
-  // Check for existing auth on startup
+  
+  // Check for existing session on app load
   useEffect(() => {
-    const loadUser = async () => {
+    const loadUserData = async () => {
       try {
-        const tokenString = await SecureStore.getItemAsync('auth_tokens');
-        const userString = await SecureStore.getItemAsync('user_data');
+        const userData = await SecureStore.getItemAsync('user');
+        const token = await SecureStore.getItemAsync('token');
         
-        if (tokenString && userString) {
-          const userData = JSON.parse(userString);
-          setUser(userData);
-          setUserType(userData.userType);
+        if (userData && token) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          setIsLoggedIn(true);
         }
       } catch (error) {
-        console.error("Failed to load authentication state:", error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error loading authentication data:', error);
       }
     };
     
-    loadUser();
+    loadUserData();
   }, []);
-
+  
   const login = async (email: string, password: string, userType: UserType) => {
-    setIsLoading(true);
-    
     try {
-      const response = await fetch(process.env.EXPO_PUBLIC_API_URL + `/api/login`, {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, userType }),
+        body: JSON.stringify({
+          email,
+          password,
+          userType,
+        }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
       }
+
+      // Store the token securely
+      await SecureStore.setItemAsync('token', data.tokens.access_token);
       
-      // Store tokens securely
-      await SecureStore.setItemAsync('auth_tokens', JSON.stringify(data.tokens));
-      await SecureStore.setItemAsync('user_data', JSON.stringify(data.user));
+      // Store user data
+      const userData = {
+        id: data.user._id || data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        userType: data.user.userType || userType,
+      };
       
-      setUser(data.user);
-      setUserType(data.user.userType);
+      await SecureStore.setItemAsync('user', JSON.stringify(userData));
       
+      setUser(userData);
+      setIsLoggedIn(true);
+      
+      console.log(`Logged in as ${userData.userType}: ${userData.name}`);
     } catch (error) {
-      console.error("Login error:", error);
+      console.error('Error during login:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
-
+  
   const logout = async () => {
-    setIsLoading(true);
     try {
-      await SecureStore.deleteItemAsync('auth_tokens');
-      await SecureStore.deleteItemAsync('user_data');
+      await SecureStore.deleteItemAsync('user');
+      await SecureStore.deleteItemAsync('token');
       setUser(null);
-      setUserType(null);
+      setIsLoggedIn(false);
     } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error during logout:', error);
     }
   };
-
+  
   return (
     <AuthContext.Provider value={{ 
+      isLoggedIn, 
       user, 
-      isLoading,
-      userType,
       login, 
-      logout,
-      isLoggedIn: !!user
+      logout 
     }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

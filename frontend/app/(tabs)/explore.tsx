@@ -58,7 +58,7 @@ export default function ExploreScreen() {
 
     const fetchNonprofits = async () => {
       try {
-        const res = await fetch('http://10.142.36.197:3000/api/nonprofit/addresses');
+        const res = await fetch(process.env.EXPO_PUBLIC_API_URL + '/api/nonprofit/addresses');
         const data: Record<string, string> = await res.json(); // data is { nonprofitId: address }
         console.log(data);
     
