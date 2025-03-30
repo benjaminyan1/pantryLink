@@ -19,7 +19,12 @@ const nonprofitSchema = new mongoose.Schema({
     {
       itemName: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
       quantity: { type: Number, required: true },
-      urgency: { type: String, enum: ["low", "medium", "high"], required: true }
+      urgency: { 
+        type: Number, 
+        min: [0, 'Urgency must be at least 0'], 
+        max: [100, 'Urgency must be at most 100'], 
+        required: true
+      }
     }
   ],
 

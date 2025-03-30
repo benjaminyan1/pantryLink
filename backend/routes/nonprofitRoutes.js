@@ -18,7 +18,7 @@ const Nonprofit = require("../models/Nonprofit");
 // });
 
 // Get nonprofit profile
-router.get("/donor/:id", async (req, res) => {
+router.get("/nonprofits/:id", async (req, res) => {
     try {
         const nonprofit = await Nonprofit.findById(req.params.id);
         if (!nonprofit) {
@@ -31,7 +31,7 @@ router.get("/donor/:id", async (req, res) => {
 });
 
 // Update profile
-router.put("/donor/:id", async (req, res) => {
+router.put("/nonprofits/:id", async (req, res) => {
     try {
         const updatedNonprofit = await Nonprofit.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedNonprofit) {
@@ -93,11 +93,14 @@ router.get("/needs/:id", async (req, res) => {
     }
 });
 
-// View matched or upcoming donations
-router.get("/donations", async (req, res) => {
+router.get("/donations/:id", async (req, res) => {
     try {
-        const nonprofits = await Nonprofit.find({ "upcomingDeliveries.status": { $ne: "delivered" } });
-        res.json(nonprofits);
+        const nonprofit = await Nonprofit.findById(req.params.id);
+        if (!nonprofit) {
+            return res.status(404).json({ message: "Nonprofit not found" });
+        }
+        const deliveredDeliveries = nonprofit.upcomingDeliveries.filter(delivery => delivery.status === "delivered");
+        res.json(deliveredDeliveries);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }
