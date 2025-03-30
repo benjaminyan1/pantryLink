@@ -21,6 +21,8 @@ const Nonprofit = require("../models/Nonprofit");
 // Get nonprofit profile
 // WORKS
 router.get("/profile/:id", async (req, res) => {
+// WORKS
+router.get("/profile/:id", async (req, res) => {
     try {
         const nonprofit = await Nonprofit.findById(req.params.id);
         if (!nonprofit) {
@@ -48,6 +50,8 @@ router.put("/profile/:id", async (req, res) => {
 
 // Get a dictionary from id to addresses
 // WORKS 
+// Get a dictionary from id to addresses
+// WORKS 
 router.get("/addresses", async (req, res) => {
     try {
         const nonprofits = await Nonprofit.find().lean();
@@ -69,7 +73,10 @@ router.post("/needs/:id", async (req, res) => {
     try {
         const { need } = req.body;  
         const nonprofitId = req.params.id;  
+        const { need } = req.body;  
+        const nonprofitId = req.params.id;  
         const nonprofit = await Nonprofit.findById(nonprofitId);
+
 
         if (!nonprofit) {
             return res.status(404).json({ message: "Nonprofit not found" });
@@ -84,6 +91,8 @@ router.post("/needs/:id", async (req, res) => {
             urgency: need.urgency
         });        
 
+        });        
+
         await nonprofit.save();
         res.json(nonprofit);
     } catch (error) {
@@ -91,6 +100,7 @@ router.post("/needs/:id", async (req, res) => {
     }
 });
 
+// works
 // works
 router.get("/needs/:id", async (req, res) => {
     try {
@@ -116,6 +126,7 @@ router.post("/donations/:id", async (req, res) => {
         const { deliveryID } = req.body;
         const nonprofit = await Nonprofit.findById(req.params.id);
         if (!nonprofit) {
+            return res.status(404).json({ message: "Nonprofit not found" });
             return res.status(404).json({ message: "Nonprofit not found" });
         }
         const delivery = await Delivery.findById(deliveryID);

@@ -1,27 +1,29 @@
 const Item = require('../models/item');
 
-// Create a new item
+// Create a new item - simplified to only use name
 const createItem = async (req, res) => {
     try {
-        const { name, description, brand, category, expirationDate, nutritionalInfo, unitType } = req.body;
+        const { name } = req.body;
 
         // Basic validation
         if (!name) {
             return res.status(400).json({ error: 'Item name is required' });
         }
 
-        const item = await Item.create({
-            name,
-            description,
-            brand,
-            category,
-            expirationDate,
-            nutritionalInfo,
-            unitType
-        });
+        // Check if item with same name already exists (case insensitive)
+        const existingItem = await Item.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+        if (existingItem) {
+            return res.status(400).json({ error: 'An item with this name already exists' });
+        }
+
+        const item = await Item.create({ name });
 
         res.status(201).json(item);
     } catch (error) {
+        // Handle MongoDB duplicate key error as a fallback
+        if (error.code === 11000) {
+            return res.status(400).json({ error: 'An item with this name already exists' });
+        }
         res.status(500).json({ error: error.message });
     }
 };
@@ -65,19 +67,15 @@ const getItem = async (req, res) => {
 // Update an item
 const updateItem = async (req, res) => {
     try {
-        const { name, description, brand, category, expirationDate, nutritionalInfo, unitType } = req.body;
+        const { name } = req.body;
+        
+        if (!name) {
+            return res.status(400).json({ error: 'Item name is required' });
+        }
         
         const item = await Item.findByIdAndUpdate(
             req.params.id,
-            {
-                name,
-                description,
-                brand,
-                category,
-                expirationDate,
-                nutritionalInfo,
-                unitType
-            },
+            { name },
             { new: true, runValidators: true }
         );
 
@@ -110,4 +108,4 @@ module.exports = {
     getItem,
     updateItem,
     deleteItem
-}; 
+};
