@@ -37,7 +37,7 @@ export default function PantryRegisterScreen() {
     
     try {
       // Register with Auth0 and create nonprofit profile
-      const registerResponse = await fetch(`http://10.142.47.118:3000/api/auth/signup`, {
+      const registerResponse = await fetch(`http://10.142.41.207:3000/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

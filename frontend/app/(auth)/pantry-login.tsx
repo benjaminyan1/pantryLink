@@ -19,7 +19,7 @@ export default function PantryLoginScreen() {
     setLoading(true);
     
     try {
-      const response = await fetch(`http://10.142.47.118:3000/api/login`, {
+      const response = await fetch(`http://10.142.41.207:3000/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
