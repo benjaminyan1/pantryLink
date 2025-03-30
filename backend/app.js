@@ -51,6 +51,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   process.exit(1);
 });
 
+console.log("AUTH0_SECRET:", process.env.AUTH0_SECRET);
 // ----- Web Authentication using express-openid-connect -----
 // This is used for your session-based routes (e.g., / and /profile)
 const authConfig = {
