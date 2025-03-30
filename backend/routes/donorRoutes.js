@@ -1,105 +1,52 @@
-// const express = require('express');
-// const router = express.Router();
-// const multer = require('multer'); // For handling image uploads
-// const upload = multer({ storage: multer.memoryStorage() });
-
-// // Import controllers (you'll need to create these)
-// const {
-//     createDonation,
-//     uploadDonationImage,
-//     getDonation,
-//     updateDonation,
-//     deleteDonation,
-//     getDonationMatches,
-//     getNearbyNonprofits
-// } = require('../controllers/donorController');
-
-
-// // Create a new donation
-// router.post('/donations', createDonation);
-
-// // Upload an image for pantry recognition
-// router.post('/donations/image', upload.single('image'), uploadDonationImage);
-
-// // Get a specific donation
-// router.get('/donations/:id', getDonation);
-
-// // Update a donation
-// router.put('/donations/:id', updateDonation);
-
-// // Delete a donation
-// router.delete('/donations/:id', deleteDonation);
-
-// // Get recommended nonprofits based on listed items
-// router.get('/donations/matches', getDonationMatches);
-
-// // Get nearby nonprofits with matching needs
-// router.get('/nonprofits/nearby', getNearbyNonprofits);
-
-// module.exports = router; 
-
 const express = require('express');
 const router = express.Router();
-const multer = require('multer'); // For handling image uploads
-const upload = multer({ storage: multer.memoryStorage() });
+const multer = require('multer');
 
-// Import the controller methods
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
+
+// Import controllers
 const {
-  // For creating and managing donations (subdocs within a Donor)
   createDonation,
   uploadDonationImage,
+  getDonor,
   updateDonation,
   deleteDonation,
   getDonationMatches,
   getNearbyNonprofits,
-  
-  // For retrieving the donor itself
-  getDonor
+  processImageAndCreateDonation
 } = require('../controllers/donorController');
 
-/**
- * Create a new donation subdocument in a Donor
- * POST /api/donations
- */
+// Create a new donation
 router.post('/donations', createDonation);
 
-/**
- * Upload an image for pantry recognition
- * POST /api/donations/image
- */
+// Upload and process an image to automatically create a donation
+router.post('/donations/image-to-donation', upload.single('image'), processImageAndCreateDonation);
+
+// Upload an image for pantry recognition
 router.post('/donations/image', upload.single('image'), uploadDonationImage);
 
-/**
- * Get a specific Donor (with all donations)
- * GET /api/donors/:id
- * This is the main fix to ensure you can retrieve a donor document by ID
- */
+// Get a specific Donor (with all donations)
 router.get('/donors/:id', getDonor);
 
-/**
- * Update a specific donation subdoc within a Donor
- * PUT /api/donations/:id
- * (Requires body to include donorId, plus other fields to update)
- */
+// Update a specific donation subdoc within a Donor
 router.put('/donations/:id', updateDonation);
 
-/**
- * Delete a specific donation subdoc within a Donor
- * DELETE /api/donations/:id
- * (Requires body to include donorId)
- */
+// Delete a specific donation subdoc within a Donor
 router.delete('/donations/:id', deleteDonation);
 
-/**
- * Get recommended nonprofits based on listed items
- * GET /api/donations/matches
- */
+// Get recommended nonprofits based on listed items
 router.get('/donations/matches', getDonationMatches);
 
-/**
- * Get nearby nonprofits with matching needs
- * GET /api/nonprofits/nearby
- */
+// Get nearby nonprofits with matching needs
 router.get('/nonprofits/nearby', getNearbyNonprofits);
 
 module.exports = router;

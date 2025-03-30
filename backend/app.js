@@ -185,13 +185,12 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Instead of directly using the password grant, create a session using express-openid-connect
-    // This requires a slight change in your frontend authentication approach
+    // Get client credentials token - still needed for API access
     const tokenResponse = await fetch(`${process.env.AUTH0_ISSUER_BASE_URL}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        grant_type: 'client_credentials', // Using client credentials instead of password
+        grant_type: 'client_credentials',
         client_id: process.env.AUTH0_CLIENT_ID,
         client_secret: process.env.AUTH0_CLIENT_SECRET,
         audience: process.env.AUTH0_AUDIENCE
@@ -205,45 +204,16 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: tokenData.error_description || 'Authentication failed' });
     }
 
-    // After getting a token, we need to manually check the user's credentials
-    // This is a workaround since we can't use the password grant directly
-    const managementToken = await getManagementToken();
-
-    // Search for the user by email
-    const userSearchResponse = await fetch(
-      `${process.env.AUTH0_ISSUER_BASE_URL}/api/v2/users-by-email?email=${encodeURIComponent(email)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${managementToken}`
-        }
-      }
-    );
-
-    const users = await userSearchResponse.json();
+    // Find the user directly in our database instead of querying Auth0
+    const usersCollection = db.collection('donors');
+    let dbUser = await usersCollection.findOne({ email });
     
-    if (!users || users.length === 0) {
+    if (!dbUser) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
-
-    const auth0User = users[0];
-
-    // Find or create user in our database
-    const usersCollection = db.collection('users');
-    let dbUser = await usersCollection.findOne({ email });
-
-    if (!dbUser) {
-      const newUser = {
-        email,
-        name: auth0User.name || email.split('@')[0],
-        auth0Id: auth0User.user_id,
-        createdAt: new Date(),
-        userType: userType || 'donor'
-      };
-
-      await usersCollection.insertOne(newUser);
-      dbUser = newUser;
-    } else if (userType && dbUser.userType !== userType) {
-      // Update user type if needed
+    
+    // If userType was specified and differs from stored type, update it
+    if (userType && dbUser.userType !== userType) {
       await usersCollection.updateOne(
         { email },
         { $set: { userType, updatedAt: new Date() } }
@@ -251,14 +221,33 @@ app.post('/api/login', async (req, res) => {
       dbUser.userType = userType;
     }
 
-    // Return application token and user data
+    console.log(dbUser);
+
+    // Find the user in their specific collection (Donor, Nonprofit, Dasher)
+    let userModel;
+    switch (dbUser.userType) {
+      case 'donor':
+        userModel = await require('./models/Donor').findOne({ email });
+        break;
+      case 'nonprofit':
+        userModel = await require('./models/Nonprofit').findOne({ 'contactPerson.email': email });
+        break;
+      case 'dasher':
+        userModel = await require('./models/Dasher').findOne({ email });
+        break;
+    }
+
+    // Return application token and user data with model-specific ID
     res.json({ 
       tokens: { 
         access_token: tokenData.access_token,
         expires_in: tokenData.expires_in,
         token_type: tokenData.token_type
       }, 
-      user: dbUser 
+      user: {
+        ...dbUser,
+        id: userModel?._id || dbUser._id
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
