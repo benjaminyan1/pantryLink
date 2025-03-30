@@ -6,15 +6,16 @@ const mongoose = require("mongoose");
 const Nonprofit = require("../models/Nonprofit");
 
 // Create nonprofit profile
-router.post("/", async (req, res) => {
-    try {
-        const newNonprofit = new Nonprofit(req.body);
-        await newNonprofit.save();
-        res.status(201).json(newNonprofit);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
+// DONT NEED THIS POST REQUEST ANYMORE
+// router.post("/", async (req, res) => {
+//     try {
+//         const newNonprofit = new Nonprofit(req.body);
+//         await newNonprofit.saxve();
+//         res.status(201).json(newNonprofit);
+//     } catch (error) {
+//         res.status(500).json({ message: "Server error", error: error.message });
+//     }
+// });
 
 // Get nonprofit profile
 router.get("/:id", async (req, res) => {
@@ -42,7 +43,18 @@ router.put("/:id", async (req, res) => {
     }
 });
 
-router.post("/needs", async (req, res) => {
+// Get all addresses for nonprofits
+router.get("/addresses", async (req, res) => {
+    try {
+        const nonprofits = await Nonprofit.find({}, { address: 1 });
+        const addresses = nonprofits.map(nonprofit => nonprofit.address);
+        res.json(addresses);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+router.post("/needs/:id", async (req, res) => {
     try {
         const { nonprofitId, needs } = req.body; // needs should now include item IDs
         const nonprofit = await Nonprofit.findById(nonprofitId);
