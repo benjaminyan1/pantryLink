@@ -2,6 +2,8 @@
 
 PantryLink is a full-stack community-powered platform that connects individuals with surplus pantry items to nearby food pantries and shelters. The platform helps reduce food waste and support underserved communities by coordinating item listings, donor-pantry matches, and volunteer deliveries.
 
+DevPost Description: https://devpost.com/software/temp-jn2yzg?_gl=1*1cia8kz*_gcl_au*ODc5MjQ1NzAzLjE3NDMyNDk2MDU.*_ga*NTczNjYyMDQzLjE3NDMyNDk2MDU.*_ga_0YHJK3Y10M*czE3NDc2MzY3MDMkbzE1JGcxJHQxNzQ3NjM2Nzk1JGowJGwwJGgw
+
 ---
 
 ## 🚀 Features
